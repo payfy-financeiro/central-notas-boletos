@@ -1,34 +1,44 @@
-# Controle de NFs por Aporte · Payfy
+# Central de Notas e Boletos · Payfy
 
 Painel: https://payfy-financeiro.github.io/controle-nf-aportes/
 
+Duas abas:
+
+- **Aportes (Notas Fiscais):** cargas dos clientes cruzadas com as NFS-e de aporte (código 3205).
+- **Serviços (Notas Fiscais e Boletos):** contas a receber do Omie (mensalidades e demais serviços), com PDF da NF e 2ª via do boleto.
+
+## Onde ficam os dados
+
+Tudo fica no **Supabase**, no projeto `central-notas-boletos` (região São Paulo). Este repositório guarda só a página e o robô, sem nenhum dado.
+
+| Tabela | Conteúdo | Quem grava |
+|---|---|---|
+| `aportes` | aportes e NFs de aporte, mais as edições manuais | financeiro, pelo botão "Atualizar dados" ou "Editar" |
+| `omie_titulos` | títulos do contas a receber do Omie, com link do boleto | robô |
+| `nfse` | código de verificação das NFS-e (para o PDF na prefeitura) | robô |
+| `meta` | datas da última atualização | financeiro e robô |
+
 ## Acessos
 
-| Senha | O que libera |
-|---|---|
-| Financeiro | Tudo: consulta, **Atualizar dados**, **Editar**, exportar |
-| CS | Somente consulta: aportes × NFs, contas a receber, PDF da NF, 2ª via do boleto, exportar |
+| Senha | Usuário no Supabase | O que pode |
+|---|---|---|
+| Financeiro | `financeiro@central.payfy.io` | ver tudo, "Atualizar dados", "Editar" |
+| CS | `cs@central.payfy.io` | só consultar (o banco recusa qualquer gravação) |
+| Robô | `robo@central.payfy.io` | gravar só os dados do Omie |
 
-As senhas **não** ficam neste repositório. Os dados vão criptografados dentro do `index.html` (AES-GCM + PBKDF2). Uma chave de dados única é "embrulhada" por cada senha (linha `const KEYS=`), então trocar a senha do CS não mexe nos dados.
+As regras de acesso ficam no próprio banco (Row Level Security). Sem login, ninguém vê nada.
 
-## Contas a receber (Omie)
+## Robô do Omie
 
-- **Robô:** `.github/workflows/sincronizar-omie.yml`, roda nos dias úteis às 7h e às 13h. Também dá para rodar na hora em **Actions → Sincronizar Omie → Run workflow**.
-- **O que puxa:** clientes, categorias e títulos do contas a receber com vencimento ou emissão desde 01/01/2025 (para mudar, crie a variável `OMIE_DESDE` em *Settings → Secrets and variables → Actions → Variables*). Puxa também o link da 2ª via dos boletos em aberto e, se as NFS-e forem emitidas pelo Omie, o código de verificação.
-- **Onde grava:** `omie.json`, criptografado, no ramo `dados`. O robô só tem a chave **pública** (`ferramentas/omie_chave_publica.json`). A chave privada fica dentro do pacote criptografado do painel, então só quem tem uma das senhas consegue ler.
-- **Secrets obrigatórios** (*Settings → Secrets and variables → Actions*): `OMIE_APP_KEY` e `OMIE_APP_SECRET`.
-- **Logs:** o repositório é público, então o robô só registra contagens e nomes de campos. Nunca registra valores, clientes ou CNPJs.
+- Arquivo: `.github/workflows/sincronizar-omie.yml`. Roda nos dias úteis às 7h e às 13h, ou na hora pelo botão **Actions → Sincronizar Omie → Run workflow**.
+- Secrets em *Settings → Secrets and variables → Actions*: `OMIE_APP_KEY`, `OMIE_APP_SECRET` e `SUPABASE_ROBO_SENHA`.
+- O robô reaproveita o que já está no Supabase (links de boleto, códigos de NFS-e), então só busca o que é novo.
+- O repositório é público, então os logs mostram só contagens.
 
-## Como os títulos se ligam aos aportes
+## Atualizar os aportes
 
-1. **CNPJ do cliente:** cada aporte mostra um selo como "Omie · 2 vencidos · 1 a vencer". Ao clicar, abre a aba de contas a receber já filtrada por aquele CNPJ.
-2. **Nº da NF do título:** o botão **NF** abre o PDF na prefeitura de SP. O código de verificação vem do Omie ou das notas de aporte que já estão no painel. Sem o código, abre a tela de verificação com os dados para copiar.
+No painel, com a senha do financeiro, clique em **Atualizar dados** e suba o relatório de cargas e o CSV de NFS-e da prefeitura. Cargas e notas que já estão na base são ignoradas, então não duplicam.
 
-## Manutenção (`ferramentas/painel.py`, requer `pip install cryptography`)
+## Arquivos antigos
 
-- Trocar a senha do CS (gera uma nova e imprime na tela):
-  `python ferramentas/painel.py senha index.html --senha <SENHA_FINANCEIRO> --papel cs`
-- Abrir a base para atualizar e depois fechar de novo:
-  `python ferramentas/painel.py abrir index.html --senha <SENHA_FINANCEIRO> --saida dados.json`
-  `python ferramentas/painel.py fechar index.html dados.json --senha <SENHA_FINANCEIRO>`
-- **Importante:** ao gerar um `index.html` novo, preserve a linha `const KEYS=` e o campo `K` do pacote (o comando `fechar` já faz isso). Sem eles, a senha do CS para de funcionar e a aba do Omie não abre.
+`ferramentas/painel.py` e `ferramentas/omie_chave_publica.json` são da versão anterior, quando os dados ficavam criptografados dentro do `index.html`. Não são mais usados.
