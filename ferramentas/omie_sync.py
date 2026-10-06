@@ -71,6 +71,10 @@ def chamar(endpoint, call, param, _tentativa=0):
         if not fs and e.code >= 500 and _tentativa < 3:
             time.sleep([5, 15, 30][_tentativa])
             return chamar(endpoint, call, param, _tentativa + 1)
+        if "chave de acesso" in fl:
+            raise OmieErro(f"{call}: o Omie recusou a chave ({fs[:120]}). Confira os secrets: "
+                           f"OMIE_APP_KEY tem {len(KEY)} caracteres (só dígitos: {KEY.isdigit()}), "
+                           f"OMIE_APP_SECRET tem {len(SECRET)} caracteres.")
         raise OmieErro(f"{call}: HTTP {e.code} {j.get('faultcode', '')} {fs[:160]}")
     except (urllib.error.URLError, TimeoutError) as e:
         if _tentativa < 3:
@@ -249,7 +253,7 @@ def main():
     ap.add_argument("--saida", required=True)
     ap.add_argument("--chave-publica", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "omie_chave_publica.json"))
     a = ap.parse_args()
-    KEY, SECRET = os.environ.get("OMIE_APP_KEY", ""), os.environ.get("OMIE_APP_SECRET", "")
+    KEY, SECRET = os.environ.get("OMIE_APP_KEY", "").strip(), os.environ.get("OMIE_APP_SECRET", "").strip()
     if not KEY or not SECRET:
         sys.exit("Faltam os secrets OMIE_APP_KEY e OMIE_APP_SECRET.")
     desde = os.environ.get("OMIE_DESDE") or "2025-01-01"
