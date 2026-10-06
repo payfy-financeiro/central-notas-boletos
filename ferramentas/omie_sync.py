@@ -1,32 +1,23 @@
 #!/usr/bin/env python3
 """
-Robô do painel "Controle de NFs por Aporte": puxa o contas a receber do Omie
+Robô da "Central de Notas e Boletos" (Payfy): puxa o contas a receber do Omie
 (clientes, categorias, títulos, link da 2ª via do boleto e código de verificação
-das NFS-e) e grava um arquivo criptografado que só o painel consegue abrir.
+das NFS-e) e grava no Supabase, de onde o painel lê.
 
-- Credenciais: variáveis de ambiente OMIE_APP_KEY e OMIE_APP_SECRET
-  (no GitHub ficam em Settings > Secrets and variables > Actions).
-- Criptografia do resultado: chave pública do painel (omie_chave_publica.json).
-  O robô não tem a chave privada, então não consegue ler o omie.json.
-- Cache entre rodadas (cache.json): links de boleto e códigos das NFS-e já
-  consultados, criptografados com uma chave derivada do OMIE_APP_SECRET. Assim a
-  1ª rodada é longa e as seguintes só buscam o que é novo.
-- O repositório é público, então os logs mostram SÓ contagens e nomes de
-  campos, nunca valores, nomes de clientes ou CNPJs.
+Variáveis de ambiente:
+  OMIE_APP_KEY, OMIE_APP_SECRET   chave da API do Omie (secrets do GitHub)
+  SUPABASE_URL, SUPABASE_KEY      endereço e chave pública do projeto (no workflow)
+  SUPABASE_ROBO_EMAIL             usuário do robô (no workflow)
+  SUPABASE_ROBO_SENHA             senha do usuário do robô (secret do GitHub)
+  OMIE_DESDE                      data mínima (vencimento ou emissão) dos títulos, AAAA-MM-DD (padrão 2025-01-01)
+  OMIE_MAX_BOLETOS                máximo de consultas novas de boleto por rodada (padrão 3000)
 
-Variáveis opcionais:
-  OMIE_DESDE        data mínima (vencimento ou emissão) dos títulos, AAAA-MM-DD (padrão 2025-01-01)
-  OMIE_MAX_BOLETOS  máximo de consultas novas de boleto por rodada (padrão 3000)
-
-Uso: python omie_sync.py --saida omie.json [--cache-entrada cache.json] [--cache-saida cache.json]
+O que já foi consultado (links de boleto, códigos das NFS-e) fica no próprio
+Supabase, então só a 1ª rodada é longa. O repositório é público: os logs
+mostram só contagens e nomes de campos, nunca valores, clientes ou CNPJs.
 """
-import argparse, base64, collections, concurrent.futures, datetime, gzip, json, os, re, sys, threading, time
-import urllib.error, urllib.request
-
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+import collections, concurrent.futures, datetime, json, os, re, sys, threading, time, uuid
+import urllib.error, urllib.parse, urllib.request
 
 API = os.environ.get("OMIE_API_URL") or "https://app.omie.com.br/api/v1/"
 INTERVALO = float(os.environ.get("OMIE_INTERVALO") or 0.3)  # s entre disparos (limite do Omie: 240/min por método)
@@ -155,58 +146,76 @@ def fechado(st):
     return any(x in s for x in ("RECEB", "LIQUID", "PAGO", "CANCEL"))
 
 
-b64 = lambda b: base64.b64encode(b).decode()
-b64u = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()
+
+# ---------- Supabase ----------
+class Supa:
+    def __init__(self, url, chave, email, senha):
+        self.url, self.chave = url.rstrip("/"), chave
+        r = self._req("POST", "/auth/v1/token?grant_type=password", {"email": email, "password": senha}, auth=False)
+        self.token = r["access_token"]
+
+    def _req(self, metodo, caminho, corpo=None, auth=True, extra=None, _tentativa=0):
+        h = {"apikey": self.chave, "Content-Type": "application/json"}
+        if auth:
+            h["Authorization"] = "Bearer " + self.token
+        h.update(extra or {})
+        dados = json.dumps(corpo).encode() if corpo is not None else None
+        req = urllib.request.Request(self.url + caminho, data=dados, method=metodo, headers=h)
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                txt = r.read().decode()
+                return json.loads(txt) if txt else None
+        except urllib.error.HTTPError as e:
+            txt = e.read().decode("utf-8", "replace")
+            if e.code >= 500 and _tentativa < 3:
+                time.sleep([3, 10, 30][_tentativa])
+                return self._req(metodo, caminho, corpo, auth, extra, _tentativa + 1)
+            if caminho.startswith("/auth/"):
+                raise SystemExit(f"Supabase recusou o login do robô (HTTP {e.code}). Confira o secret SUPABASE_ROBO_SENHA.")
+            raise SystemExit(f"Erro no Supabase {metodo} {caminho.split('?')[0]}: HTTP {e.code} {txt[:200]}")
+        except (urllib.error.URLError, TimeoutError) as e:
+            if _tentativa < 3:
+                time.sleep([3, 10, 30][_tentativa])
+                return self._req(metodo, caminho, corpo, auth, extra, _tentativa + 1)
+            raise SystemExit(f"Falha de rede com o Supabase ({type(e).__name__})")
+
+    def ler_tudo(self, tabela, select, filtro=""):
+        out, ini, passo = [], 0, 1000
+        while True:
+            lote = self._req("GET", f"/rest/v1/{tabela}?select={select}{filtro}&order=1&offset={ini}&limit={passo}".replace("order=1", "order=" + select.split(",")[0]))
+            out += lote or []
+            if not lote or len(lote) < passo:
+                return out
+            ini += passo
+
+    def gravar(self, tabela, linhas, lote=1000):
+        for i in range(0, len(linhas), lote):
+            self._req("POST", f"/rest/v1/{tabela}", linhas[i:i + lote], extra={"Prefer": "resolution=merge-duplicates,return=minimal"})
+
+    def apagar(self, tabela, filtro):
+        self._req("DELETE", f"/rest/v1/{tabela}?{filtro}", extra={"Prefer": "return=minimal"})
+
+    def meta(self):
+        return {m["chave"]: m["valor"] for m in self._req("GET", "/rest/v1/meta?select=chave,valor") or []}
+
+    def gravar_meta(self, pares):
+        self.gravar("meta", [{"chave": k, "valor": v, "atualizado_em": agora_iso()} for k, v in pares.items()])
 
 
-def cifrar(payload, caminho_pub):
-    with open(caminho_pub, encoding="utf-8") as f:
-        jwk = json.load(f)
-    pad = lambda s: base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
-    pub = ec.EllipticCurvePublicNumbers(int.from_bytes(pad(jwk["x"]), "big"), int.from_bytes(pad(jwk["y"]), "big"), ec.SECP256R1()).public_key()
-    eph = ec.generate_private_key(ec.SECP256R1())
-    salt, iv = os.urandom(16), os.urandom(12)
-    chave = HKDF(algorithm=hashes.SHA256(), length=32, salt=salt, info=b"payfy-omie-v1").derive(eph.exchange(ec.ECDH(), pub))
-    raw = gzip.compress(json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode(), mtime=0)
-    n = eph.public_key().public_numbers()
-    return {
-        "v": 1, "z": 1,
-        "epk": {"kty": "EC", "crv": "P-256", "x": b64u(n.x.to_bytes(32, "big")), "y": b64u(n.y.to_bytes(32, "big"))},
-        "salt": b64(salt), "iv": b64(iv), "ct": b64(AESGCM(chave).encrypt(iv, raw, None)),
-    }
+def agora_iso():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
 
 
-# ---------- cache entre rodadas (só o robô lê) ----------
-def _chave_cache():
-    return HKDF(algorithm=hashes.SHA256(), length=32, salt=b"payfy-omie-cache", info=b"cache-v1").derive(SECRET.encode())
+def ler_cache_supabase(sb):
+    m = sb.meta()
+    bol = {str(r["id"]): {"k": r["bol_chave"], "l": r["bol_link"], "cb": r.get("bol_cb") or ""}
+           for r in sb.ler_tudo("omie_titulos", "id,bol_chave,bol_link,bol_cb", "&bol_link=not.is.null")}
+    log(f"Já no Supabase: {len(bol)} links de boleto | NFS-e consultadas até {m.get('nfse_ate') or '—'}")
+    return {"nfse": {}, "nfse_ate": m.get("nfse_ate") or "", "nfse_desde": m.get("nfse_desde") or "9999", "bol": bol}
 
 
-def ler_cache(caminho):
-    vazio = {"nfse": {}, "nfse_ate": "", "bol": {}}
-    if not caminho or not os.path.exists(caminho) or os.path.getsize(caminho) == 0:
-        log("Cache: nenhum (primeira rodada ou cache novo)")
-        return vazio
-    try:
-        with open(caminho, encoding="utf-8") as f:
-            box = json.load(f)
-        c = json.loads(gzip.decompress(AESGCM(_chave_cache()).decrypt(base64.b64decode(box["iv"]), base64.b64decode(box["ct"]), None)))
-        log(f"Cache: {len(c.get('nfse', {}))} NFS-e e {len(c.get('bol', {}))} boletos já conhecidos")
-        return {**vazio, **c}
-    except Exception:
-        log("Cache: ilegível (chave mudou?); refazendo do zero")
-        return vazio
 
-
-def gravar_cache(caminho, cache):
-    if not caminho:
-        return
-    iv = os.urandom(12)
-    raw = gzip.compress(json.dumps(cache, separators=(",", ":")).encode(), mtime=0)
-    with open(caminho, "w", encoding="utf-8") as f:
-        json.dump({"v": 1, "iv": b64(iv), "ct": b64(AESGCM(_chave_cache()).encrypt(iv, raw, None))}, f)
-
-
-# ---------- etapas ----------
+# ---------- etapas no Omie ----------
 def puxar_clientes():
     itens, _ = paginar("geral/clientes/", "ListarClientes", {"apenas_importado_api": "N"}, "clientes_cadastro")
     m = {}
@@ -330,79 +339,78 @@ def puxar_nfse(desde, cache):
     log(f"NFS-e consultadas desde {ini}: {len(itens)} | novas: {novas} | total no cache: {len(cache['nfse'])}")
     return cache["nfse"]
 
-
 def main():
     global KEY, SECRET
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--saida", required=True)
-    ap.add_argument("--cache-entrada")
-    ap.add_argument("--cache-saida")
-    ap.add_argument("--chave-publica", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "omie_chave_publica.json"))
-    a = ap.parse_args()
     KEY, SECRET = os.environ.get("OMIE_APP_KEY", "").strip(), os.environ.get("OMIE_APP_SECRET", "").strip()
     if not KEY or not SECRET:
         sys.exit("Faltam os secrets OMIE_APP_KEY e OMIE_APP_SECRET.")
+    faltando = [v for v in ("SUPABASE_URL", "SUPABASE_KEY", "SUPABASE_ROBO_EMAIL", "SUPABASE_ROBO_SENHA") if not os.environ.get(v, "").strip()]
+    if faltando:
+        sys.exit("Faltam as variáveis: " + ", ".join(faltando))
     desde = os.environ.get("OMIE_DESDE") or "2025-01-01"
     maximo = int(os.environ.get("OMIE_MAX_BOLETOS") or 3000)
     t0 = time.monotonic()
-    cache = ler_cache(a.cache_entrada)
+    sb = Supa(os.environ["SUPABASE_URL"].strip(), os.environ["SUPABASE_KEY"].strip(),
+              os.environ["SUPABASE_ROBO_EMAIL"].strip(), os.environ["SUPABASE_ROBO_SENHA"].strip())
+    cache = ler_cache_supabase(sb)
 
     try:
         clientes = puxar_clientes()
         titulos = puxar_titulos(desde)
     except OmieErro as e:
         sys.exit(f"Erro ao consultar o Omie: {e}")
+    if not titulos:
+        sys.exit("O Omie não devolveu nenhum título; nada foi alterado no Supabase.")
     categorias = puxar_categorias()
     try:
         boletos = puxar_boletos(titulos, maximo, cache)
     except OmieErro as e:
         log(f"Aviso: boletos interrompidos ({e})")
         boletos = {}
-    todas_nfse = puxar_nfse(desde, cache)
-    gravar_cache(a.cache_saida, cache)
+    nfse_novas = puxar_nfse(desde, cache)
 
-    cli_idx, cli_lista, cats_usadas, tit, nfse = {}, [], {}, [], {}
+    sinc = uuid.uuid4().hex[:12]
+    chave_bol = lambda t: f"{t.get('data_vencimento')}|{t['boleto'].get('cNumBoleto')}|{t.get('valor_documento')}"
+    linhas = []
     for t in titulos:
-        cod = t.get("codigo_cliente_fornecedor")
-        if cod not in cli_idx:
-            cli_idx[cod] = len(cli_lista)
-            cli_lista.append(list(clientes.get(cod, ("(cliente não encontrado no Omie)", ""))))
+        nome, cnpj = clientes.get(t.get("codigo_cliente_fornecedor"), ("(cliente não encontrado no Omie)", ""))
         cat = t.get("codigo_categoria") or next((c.get("codigo_categoria") for c in (t.get("categorias") or []) if c.get("codigo_categoria")), "")
-        if cat and cat in categorias:
-            cats_usadas[cat] = categorias[cat]
         b = t.get("boleto") if isinstance(t.get("boleto"), dict) else {}
-        reg = {
+        gerado = str(b.get("cGerado", "")).upper() == "S"
+        lk = boletos.get(t.get("codigo_lancamento_omie"), {})
+        linhas.append({
             "id": t.get("codigo_lancamento_omie"),
-            "ci": cli_idx[cod],
-            "nf": num_nf(t.get("numero_documento_fiscal")),
-            "doc": str(t.get("numero_documento") or "").strip(),
-            "parc": str(t.get("numero_parcela") or "").strip(),
-            "em": iso(t.get("data_emissao")),
-            "ve": iso(t.get("data_vencimento")),
-            "v": round(float(t.get("valor_documento") or 0), 2),
-            "st": (t.get("status_titulo") or "").strip(),
-            "cat": cat,
-        }
-        if reg["nf"] and reg["nf"] in todas_nfse:
-            nfse[reg["nf"]] = todas_nfse[reg["nf"]]
-        if str(b.get("cGerado", "")).upper() == "S":
-            reg["bol"] = dict({"n": str(b.get("cNumBoleto") or "").strip()}, **boletos.get(reg["id"], {}))
-        tit.append({k: v for k, v in reg.items() if v not in ("", None)})
+            "cliente": nome,
+            "cnpj": cnpj,
+            "nf": num_nf(t.get("numero_documento_fiscal")) or None,
+            "doc": str(t.get("numero_documento") or "").strip() or None,
+            "parc": str(t.get("numero_parcela") or "").strip() or None,
+            "emissao": iso(t.get("data_emissao")) or None,
+            "vencimento": iso(t.get("data_vencimento")) or None,
+            "valor": round(float(t.get("valor_documento") or 0), 2),
+            "status": (t.get("status_titulo") or "").strip(),
+            "categoria": categorias.get(cat, "") or None,
+            "bol_num": (str(b.get("cNumBoleto") or "").strip()) if gerado else None,
+            "bol_link": lk.get("l") or None,
+            "bol_cb": lk.get("cb") or None,
+            "bol_chave": chave_bol(t) if lk.get("l") else None,
+            "sinc": sinc,
+            "atualizado_em": agora_iso(),
+        })
 
-    agora = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-    payload = {"t": agora, "desde": desde, "cli": cli_lista, "cat": cats_usadas, "tit": tit, "nfse": nfse}
-    os.makedirs(os.path.dirname(os.path.abspath(a.saida)), exist_ok=True)
-    with open(a.saida, "w", encoding="utf-8") as f:
-        json.dump(cifrar(payload, a.chave_publica), f, separators=(",", ":"))
+    log("Gravando no Supabase…")
+    sb.gravar("omie_titulos", linhas)
+    sb.apagar("omie_titulos", f"sinc=neq.{sinc}")  # títulos que saíram do Omie ou da janela de datas
+    nf_linhas = [{"nf": nf, "cod_verif": v["cv"], "im": v.get("im")} for nf, v in nfse_novas.items()]
+    sb.gravar("nfse", nf_linhas)
+    sb.gravar_meta({"omie_sincronizado": agora_iso(), "nfse_ate": cache["nfse_ate"], "nfse_desde": cache["nfse_desde"]})
 
-    abertos = [x for x in tit if not fechado(x.get("st"))]
-    com_nf = [x for x in tit if x.get("nf")]
+    abertos = [x for x in linhas if not fechado(x["status"])]
     resumo = [
-        "### Sincronização Omie",
-        f"- Títulos desde {desde}: **{len(tit)}** (em aberto: {len(abertos)})",
-        f"- Com nº de NF: {len(com_nf)} | com código de verificação: {sum(1 for x in com_nf if x['nf'] in nfse)}",
-        f"- Com boleto gerado: {sum(1 for x in tit if 'bol' in x)} | com link de 2ª via: {sum(1 for x in tit if x.get('bol', {}).get('l'))}",
-        f"- Clientes: {len(cli_lista)}",
+        "### Sincronização Omie → Supabase",
+        f"- Títulos desde {desde}: **{len(linhas)}** (em aberto: {len(abertos)})",
+        f"- Em aberto com boleto gerado: {sum(1 for x in abertos if x['bol_num'] is not None)} | com link de 2ª via: {sum(1 for x in abertos if x['bol_link'])}",
+        f"- Códigos de NFS-e gravados nesta rodada: {len(nf_linhas)}",
         f"- Tempo: {int(time.monotonic() - t0)} s",
     ]
     log("\n".join(resumo))
