@@ -17,7 +17,7 @@ concurrency:
 jobs:
   sincronizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -28,12 +28,21 @@ jobs:
       - name: Instalar dependências
         run: pip install --quiet cryptography
 
+      - name: Buscar o cache da rodada anterior
+        run: |
+          mkdir -p "$RUNNER_TEMP/publicar"
+          git fetch --depth=1 origin dados 2>/dev/null && git show FETCH_HEAD:cache.json > "$RUNNER_TEMP/cache_anterior.json" 2>/dev/null || echo "sem cache anterior"
+
       - name: Puxar contas a receber do Omie
         env:
           OMIE_APP_KEY: ${{ secrets.OMIE_APP_KEY }}
           OMIE_APP_SECRET: ${{ secrets.OMIE_APP_SECRET }}
           OMIE_DESDE: ${{ vars.OMIE_DESDE }}
-        run: python ferramentas/omie_sync.py --saida "$RUNNER_TEMP/publicar/omie.json"
+        run: >
+          python ferramentas/omie_sync.py
+          --saida "$RUNNER_TEMP/publicar/omie.json"
+          --cache-entrada "$RUNNER_TEMP/cache_anterior.json"
+          --cache-saida "$RUNNER_TEMP/publicar/cache.json"
 
       - name: Publicar no ramo "dados"
         env:
@@ -43,6 +52,6 @@ jobs:
           git init -q -b dados
           git config user.name "sincronizar-omie"
           git config user.email "sincronizar-omie@users.noreply.github.com"
-          git add omie.json
+          git add omie.json cache.json
           git commit -q -m "Omie $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" dados
