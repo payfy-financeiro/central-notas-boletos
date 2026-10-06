@@ -1,14 +1,14 @@
 name: Sincronizar Omie
 
-# Puxa o contas a receber do Omie e publica o arquivo criptografado
-# (omie.json) no ramo "dados". O painel lê esse arquivo ao abrir.
+# Puxa o contas a receber do Omie e grava no Supabase (projeto central-notas-boletos).
+# O painel lê os dados direto do Supabase.
 on:
   schedule:
     - cron: "0 10,16 * * 1-5"   # 7h e 13h de Brasília, dias úteis
   workflow_dispatch:            # botão "Run workflow" na aba Actions
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: sincronizar-omie
@@ -25,33 +25,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Instalar dependências
-        run: pip install --quiet cryptography
-
-      - name: Buscar o cache da rodada anterior
-        run: |
-          mkdir -p "$RUNNER_TEMP/publicar"
-          git fetch --depth=1 origin dados 2>/dev/null && git show FETCH_HEAD:cache.json > "$RUNNER_TEMP/cache_anterior.json" 2>/dev/null || echo "sem cache anterior"
-
-      - name: Puxar contas a receber do Omie
+      - name: Puxar contas a receber do Omie e gravar no Supabase
         env:
           OMIE_APP_KEY: ${{ secrets.OMIE_APP_KEY }}
           OMIE_APP_SECRET: ${{ secrets.OMIE_APP_SECRET }}
           OMIE_DESDE: ${{ vars.OMIE_DESDE }}
-        run: >
-          python ferramentas/omie_sync.py
-          --saida "$RUNNER_TEMP/publicar/omie.json"
-          --cache-entrada "$RUNNER_TEMP/cache_anterior.json"
-          --cache-saida "$RUNNER_TEMP/publicar/cache.json"
-
-      - name: Publicar no ramo "dados"
-        env:
-          TOKEN: ${{ github.token }}
-        run: |
-          cd "$RUNNER_TEMP/publicar"
-          git init -q -b dados
-          git config user.name "sincronizar-omie"
-          git config user.email "sincronizar-omie@users.noreply.github.com"
-          git add omie.json cache.json
-          git commit -q -m "Omie $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" dados
+          SUPABASE_URL: https://wxrwllcbfkqlyulacgzt.supabase.co
+          SUPABASE_KEY: sb_publishable_XAkIjpawOcnnrTG8SuXCng_7BsJYjl7
+          SUPABASE_ROBO_EMAIL: robo@central.payfy.io
+          SUPABASE_ROBO_SENHA: ${{ secrets.SUPABASE_ROBO_SENHA }}
+        run: python ferramentas/omie_sync.py
