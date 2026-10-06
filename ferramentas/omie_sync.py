@@ -247,8 +247,10 @@ def puxar_titulos(desde):
         if t.get("codigo_lancamento_omie") not in vistos:
             vistos.add(t.get("codigo_lancamento_omie"))
             unicos.append(t)
-    sel = [t for t in unicos if max(iso(t.get("data_vencimento")), iso(t.get("data_emissao"))) >= desde]
-    log(f"Títulos a partir de {desde}: {len(sel)}")
+    # entra tudo que ainda está em aberto (mesmo vencido há muito tempo) + o histórico a partir de OMIE_DESDE
+    sel = [t for t in unicos if not fechado(t.get("status_titulo"))
+           or max(iso(t.get("data_vencimento")), iso(t.get("data_emissao"))) >= desde]
+    log(f"Títulos em aberto + histórico desde {desde}: {len(sel)}")
     log("  situações: " + json.dumps(collections.Counter((t.get("status_titulo") or "?") for t in sel), ensure_ascii=False))
     return sel
 
