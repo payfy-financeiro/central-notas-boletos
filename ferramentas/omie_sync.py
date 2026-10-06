@@ -30,7 +30,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 API = os.environ.get("OMIE_API_URL") or "https://app.omie.com.br/api/v1/"
 INTERVALO = float(os.environ.get("OMIE_INTERVALO") or 0.3)  # s entre disparos (limite do Omie: 240/min por método)
-TRABALHADORES = 3  # chamadas simultâneas (limite do Omie: 4 por método)
+TRABALHADORES = 3  # chamadas simultâneas onde o Omie deixa (ListarNFSEs); contas a receber e boletos vão um por vez
 _trava = threading.Lock()
 _ultima = [0.0]
 
@@ -208,7 +208,7 @@ def gravar_cache(caminho, cache):
 
 # ---------- etapas ----------
 def puxar_clientes():
-    itens, _ = paginar("geral/clientes/", "ListarClientes", {"apenas_importado_api": "N"}, "clientes_cadastro", paralelo=True)
+    itens, _ = paginar("geral/clientes/", "ListarClientes", {"apenas_importado_api": "N"}, "clientes_cadastro")
     m = {}
     for c in itens:
         nome = (c.get("razao_social") or c.get("nome_fantasia") or "").strip()
@@ -229,7 +229,8 @@ def puxar_categorias():
 
 
 def puxar_titulos(desde):
-    itens, _ = paginar("financas/contareceber/", "ListarContasReceber", {"apenas_importado_api": "N"}, "conta_receber_cadastro", paralelo=True)
+    # ListarContasReceber só aceita uma requisição por vez (erro Client-8020 em paralelo)
+    itens, _ = paginar("financas/contareceber/", "ListarContasReceber", {"apenas_importado_api": "N"}, "conta_receber_cadastro")
     log(f"Títulos no Omie: {len(itens)}")
     vistos, unicos = set(), []
     for t in itens:  # páginas em paralelo podem repetir registros se algo mudar no meio
@@ -258,7 +259,7 @@ def puxar_boletos(titulos, maximo, cache):
     if len(novos) > maximo:
         log(f"Aviso: {len(novos)} boletos novos; consultando só os {maximo} mais recentes nesta rodada")
         novos = novos[:maximo]
-    falhas, parar = [], threading.Event()
+    falhas, parar, sem_link = [], threading.Event(), []
     def um(t):
         if parar.is_set():
             return None
@@ -271,8 +272,11 @@ def puxar_boletos(titulos, maximo, cache):
             return None
         flat = achatar(r)
         link = primeiro(flat, r"^cLinkBoleto$", url=True) or primeiro(flat, r"link|url", url=True)
-        return (t, link, primeiro(flat, r"^cCodBarras$") or primeiro(flat, r"linha|barras|digit")) if link else None
-    with concurrent.futures.ThreadPoolExecutor(TRABALHADORES) as ex:
+        if not link:
+            sem_link.append(str(r.get("cDesStatus") or r.get("faultstring") or "")[:100])
+            return None
+        return (t, link, primeiro(flat, r"^cCodBarras$") or primeiro(flat, r"linha|barras|digit"))
+    with concurrent.futures.ThreadPoolExecutor(1) as ex:  # ObterBoleto: um por vez
         for res in ex.map(um, novos):
             if res:
                 t, link, cb = res
@@ -280,6 +284,8 @@ def puxar_boletos(titulos, maximo, cache):
                 cache["bol"][str(t["codigo_lancamento_omie"])] = {"k": chave(t), "l": link, "cb": cb}
     if falhas:
         log(f"  aviso boleto: {falhas[0][:120]}")
+    if sem_link:
+        log(f"  {len(sem_link)} boleto(s) sem link; motivos: " + json.dumps(collections.Counter(sem_link).most_common(3), ensure_ascii=False))
     if parar.is_set():
         log("Aviso: muitas falhas no ObterBoleto; parei para não bloquear a API.")
     abertos = {str(t["codigo_lancamento_omie"]) for t in alvo}
