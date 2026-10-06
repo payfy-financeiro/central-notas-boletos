@@ -65,8 +65,9 @@ def chamar(endpoint, call, param, _tentativa=0):
         if ("redundante" in fl or "redundant" in fl) and _tentativa < 1:
             time.sleep(61)
             return chamar(endpoint, call, param, _tentativa + 1)
-        if not fs and e.code >= 500 and _tentativa < 3:
-            time.sleep([5, 15, 30][_tentativa])
+        instavel = not fs or "internal error" in fl or "soap-error" in fl or "timeout" in fl
+        if e.code >= 500 and instavel and _tentativa < 3:  # instabilidade do Omie: tenta de novo
+            time.sleep([10, 30, 60][_tentativa])
             return chamar(endpoint, call, param, _tentativa + 1)
         if "chave de acesso" in fl:
             raise OmieErro(f"{call}: o Omie recusou a chave ({fs[:120]}). Confira os secrets OMIE_APP_KEY e OMIE_APP_SECRET.")
