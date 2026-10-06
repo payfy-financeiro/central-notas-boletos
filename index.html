@@ -874,6 +874,8 @@ function oSit(t){
   const s=(t.st||'').toUpperCase();
   if(/CANCEL/.test(s))return 'cancelado';
   if(/RECEB|LIQUID|PAGO/.test(s))return 'recebido';
+  if(/ATRAS/.test(s))return 'vencido';           // mesma regra do Omie
+  if(/VENCE HOJE|A VENCER/.test(s))return 'aberto';
   return (t.ve&&t.ve<HOJE)?'vencido':'aberto';
 }
 function prepOmie(d){
