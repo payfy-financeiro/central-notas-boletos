@@ -297,10 +297,12 @@ def puxar_boletos(titulos, maximo, cache):
 def puxar_nfse(desde, cache):
     """Códigos de verificação das NFS-e emitidas pelo Omie (incremental pelo cache)."""
     hoje = datetime.date.today()
-    if cache.get("nfse_ate"):
+    # NFs de títulos que vencem a partir de OMIE_DESDE podem ter sido emitidas até ~2 meses antes
+    inicio = (datetime.date.fromisoformat(desde) - datetime.timedelta(days=62)).isoformat()
+    if cache.get("nfse_ate") and cache.get("nfse_desde", "9999") <= inicio:
         ini = (datetime.date.fromisoformat(cache["nfse_ate"]) - datetime.timedelta(days=10)).isoformat()
     else:
-        ini = desde
+        ini = inicio  # primeira rodada ou janela maior que a do cache: busca tudo desde o início
     base = {"dEmiInicial": br(ini), "dEmiFinal": br((hoje + datetime.timedelta(days=1)).isoformat())}
     try:
         itens, primeira = paginar("servicos/nfse/", "ListarNFSEs", base, "nfseEncontradas",
@@ -324,6 +326,7 @@ def puxar_nfse(desde, cache):
                 ent["im"] = im
             cache["nfse"][nf] = ent
     cache["nfse_ate"] = hoje.isoformat()
+    cache["nfse_desde"] = min(cache.get("nfse_desde", "9999"), ini)
     log(f"NFS-e consultadas desde {ini}: {len(itens)} | novas: {novas} | total no cache: {len(cache['nfse'])}")
     return cache["nfse"]
 
