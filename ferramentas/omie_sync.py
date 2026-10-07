@@ -329,6 +329,8 @@ def puxar_nfse(desde, cache):
             campos = sorted(flat.keys())
         nf = num_nf(primeiro(flat, r"^nNumeroNFSe$") or primeiro(flat, r"^[nc]?Num(ero)?NFSe$"))
         cv = primeiro(flat, r"^cCodigoVerifNFSe$") or primeiro(flat, r"verif")
+        # A prefeitura só aceita o código sem hífen (o Omie às vezes manda "XNQU-VDVL").
+        cv = re.sub(r"[^0-9A-Za-z]", "", str(cv or "")).upper()
         if nf and cv:
             if nf not in cache["nfse"]:
                 novas += 1
