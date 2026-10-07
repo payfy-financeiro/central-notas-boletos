@@ -466,7 +466,7 @@ const PRESTADOR='27.450.967/0001-21';
 window.openNota=id=>{
   const a=APORTES.find(x=>x.id===id);if(!a)return;const e=eff(a);
   if(e.cv&&e.nf){
-    const url=`https://nfe.prefeitura.sp.gov.br/contribuinte/notaprintpdf.aspx?inscricao=${encodeURIComponent(e.im)}&nf=${encodeURIComponent(e.nf)}&verificacao=${encodeURIComponent(e.cv)}`;
+    const url=`https://nfe.prefeitura.sp.gov.br/contribuinte/notaprintpdf.aspx?inscricao=${encodeURIComponent(e.im)}&nf=${encodeURIComponent(e.nf)}&verificacao=${encodeURIComponent(String(e.cv).replace(/[^0-9A-Za-z]/g,'').toUpperCase())}`;
     window.open(url,'_blank','noopener');return;
   }
   document.getElementById('vSub').textContent=`${a.e} · aporte ${fmtIso(a.d)}`;
@@ -1005,7 +1005,7 @@ window.abrirNfOmie=id=>{
   if(n.url){window.open(n.url,'_blank','noopener');return;}
   let cv=n.cv,im=n.im||IM;
   if(!cv){const a=APORTE_CV[t.c+'|'+t.nf];if(a){cv=a.cv;im=a.im||IM;}}
-  if(cv){window.open(`https://nfe.prefeitura.sp.gov.br/contribuinte/notaprintpdf.aspx?inscricao=${encodeURIComponent(im)}&nf=${encodeURIComponent(t.nf)}&verificacao=${encodeURIComponent(cv)}`,'_blank','noopener');return;}
+  if(cv){window.open(`https://nfe.prefeitura.sp.gov.br/contribuinte/notaprintpdf.aspx?inscricao=${encodeURIComponent(im)}&nf=${encodeURIComponent(t.nf)}&verificacao=${encodeURIComponent(String(cv).replace(/[^0-9A-Za-z]/g,'').toUpperCase())}`,'_blank','noopener');return;}
   document.getElementById('vSub').textContent=`${t.e} · vencimento ${fmtIso(t.ve)}`;
   document.getElementById('vCnpj').textContent=PRESTADOR;
   document.getElementById('vNf').textContent=t.nf;
