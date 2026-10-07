@@ -287,15 +287,10 @@
       <p>Use a sua conta Google da Payfy. Cada pessoa vê os clientes da própria carteira.</p>
       <button id="googleBtn" class="g-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>Entrar com Google</button>
       <div class="gate-dominio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Somente contas <b>@payfy.io</b></div>
-      <div id="gatePwBox">
-        <input id="gatePw" type="password" placeholder="Senha de acesso" autocomplete="off">
-        <button id="gateBtn">Entrar</button>
-      </div>
       <div id="gateErr"></div>
       <div id="gateLoad"></div>
       <div class="gate-rodape">
         <span>Problemas para entrar? <a href="mailto:financeiro@payfy.io">financeiro@payfy.io</a></span>
-        <a id="gatePwLink">Entrar com senha (temporário)</a>
       </div>
     </div>
   </div>
@@ -1022,7 +1017,6 @@ setMode('merge');
 // ================= Acesso por papel (financeiro / CS) + Contas a receber do Omie =================
 let ROLE='cs', OMIE=null, OMIE_ERR='', OMIE_BY_CNPJ={}, OMIE_BY_ID={}, APORTE_CV={};
 const SUPA_URL='https://wxrwllcbfkqlyulacgzt.supabase.co', SUPA_KEY='sb_publishable_XAkIjpawOcnnrTG8SuXCng_7BsJYjl7';
-const CONTAS=[['fin','financeiro@central.payfy.io'],['cs','cs@central.payfy.io']];
 let view='aportes', oYear='all', oMonth='all', oFilter='todos', oPage=1, oSortKey='ve', oSortDir=-1, HOJE='';
 const NOTE_MANUAL='Esta nota foi marcada manualmente e não tem código de verificação salvo. Preencha os campos na página oficial e clique em <b>Verificar Autenticidade</b>.';
 const NOTE_OMIE='O Omie não trouxe o código de verificação desta nota. Na página da prefeitura, informe o CNPJ do prestador, o nº da NFS-e e o código de verificação (está no e-mail ou no XML da nota) e clique em <b>Verificar Autenticidade</b>.';
@@ -1687,7 +1681,6 @@ function erroEntrada(msg){
   const err=document.getElementById('gateErr');err.textContent=msg;
   document.getElementById('gateLoad').textContent='';
   const gb=document.getElementById('googleBtn');gb.disabled=false;
-  const btn=document.getElementById('gateBtn');btn.disabled=false;btn.textContent='Entrar';
 }
 async function sairDoSupabase(){
   try{if(SESS)await fetch(SUPA_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SESS.access_token}});}catch(_){}
@@ -1726,23 +1719,6 @@ function lerRetornoGoogle(){
   if(erro){history.replaceState(null,'',location.pathname);return {erro};}
   return null;
 }
-async function tryUnlock(){ // senha antiga (temporária, até desligarmos)
-  const inp=document.getElementById('gatePw'),btn=document.getElementById('gateBtn'),err=document.getElementById('gateErr');
-  const pw=inp.value.trim();if(!pw){inp.focus();return;}
-  btn.disabled=true;btn.textContent='Entrando…';err.textContent='';
-  try{
-    let achou=null;
-    for(const [,email] of CONTAS){const s=await authReq({email,password:pw},'password');if(s){achou=s;break;}}
-    if(!achou){err.textContent='Senha incorreta. Tente novamente.';btn.disabled=false;btn.textContent='Entrar';inp.value='';inp.focus();return;}
-    await entrarComSessao(achou);
-  }catch(e){
-    erroEntrada('Não consegui abrir o painel: '+(e&&e.message?e.message:e));
-  }
-}
-document.getElementById('gatePwLink').onclick=()=>{
-  const b=document.getElementById('gatePwBox');b.style.display=b.style.display==='block'?'none':'block';
-  if(b.style.display==='block')document.getElementById('gatePw').focus();
-};
 document.getElementById('sairBtn').onclick=async e=>{
   e.preventDefault();
   await sairDoSupabase();
@@ -1750,8 +1726,6 @@ document.getElementById('sairBtn').onclick=async e=>{
   location.reload();
 };
 document.body.classList.add('locked');
-document.getElementById('gateBtn').onclick=tryUnlock;
-document.getElementById('gatePw').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
 (async()=>{
   const ret=lerRetornoGoogle();
   if(ret&&ret.s){await entrarComSessao(ret.s);return;}
