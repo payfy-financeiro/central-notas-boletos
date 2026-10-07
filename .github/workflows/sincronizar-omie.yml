@@ -4,7 +4,9 @@ name: Sincronizar Omie
 # O painel lê os dados direto do Supabase.
 on:
   schedule:
-    - cron: "0 10,16 * * 1-5"   # 7h e 13h de Brasília, dias úteis
+    # 7h12 e 13h12 de Brasília, dias úteis. Fora do minuto 0, que é o horário
+    # de pico do GitHub, quando execuções agendadas atrasam ou são descartadas.
+    - cron: "12 10,16 * * 1-5"
   workflow_dispatch:            # botão "Run workflow" na aba Actions
 
 permissions:
