@@ -275,6 +275,7 @@
     <div class="left-tools">
       <select id="yearSel"></select>
       <select id="monthSel"></select>
+      <select id="csmFiltro" title="CSM responsável" style="display:none"></select>
       <div class="search-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
         <input id="search" placeholder="Buscar empresa, CNPJ ou nº NF…">
@@ -309,6 +310,7 @@
     <div class="left-tools">
       <select id="oYearSel" title="Ano de vencimento"></select>
       <select id="oMonthSel" title="Mês de vencimento"></select>
+      <select id="oCsmFiltro" title="CSM responsável" style="display:none"></select>
       <div class="search-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
         <input id="oSearch" placeholder="Buscar cliente, CNPJ, nº NF ou boleto…">
@@ -494,7 +496,7 @@ function buildYears(){
   document.getElementById('monthSel').innerHTML='<option value="all">Todos os meses</option>'+MES.slice(1).map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}">${m}</option>`).join('');
   year='all';month='all';
 }
-function periodList(){return APORTES.filter(a=>(year==='all'||a.d.slice(0,4)===year)&&(month==='all'||a.d.slice(5,7)===month));}
+function periodList(){return APORTES.filter(a=>(year==='all'||a.d.slice(0,4)===year)&&(month==='all'||a.d.slice(5,7)===month)&&passaCsm(a.c));}
 function sortVal(a,key){
   const e=eff(a);
   if(key==='e')return a.e.toLowerCase();
@@ -507,7 +509,7 @@ function sortVal(a,key){
 }
 let _tlCache=null,_tlSig='',dataVer=0;
 function tableList(){
-  const sig=[year,month,filter,search,sortKey,sortDir,dataVer,APORTES.length].join('|');
+  const sig=[year,month,filter,search,sortKey,sortDir,dataVer,APORTES.length,csmF,cartVer].join('|');
   if(_tlSig===sig&&_tlCache)return _tlCache;
   let l=periodList();
   if(search){const q=search.toLowerCase(),qd=search.replace(/\D/g,'');l=l.filter(a=>a.e.toLowerCase().includes(q)||(qd&&a.c.includes(qd))||(eff(a).nf||'').includes(q));}
@@ -1037,7 +1039,7 @@ function buildOYears(){
 }
 function oBase(){
   if(!OMIE)return[];
-  let l=OMIE.list.filter(t=>(oYear==='all'||(t.ve||'').slice(0,4)===oYear)&&(oMonth==='all'||(t.ve||'').slice(5,7)===oMonth));
+  let l=OMIE.list.filter(t=>(oYear==='all'||(t.ve||'').slice(0,4)===oYear)&&(oMonth==='all'||(t.ve||'').slice(5,7)===oMonth)&&passaCsm(t.c));
   if(search){
     const q=search.toLowerCase(),qd=search.replace(/\D/g,'');
     l=l.filter(t=>t.e.toLowerCase().includes(q)||t.catd.toLowerCase().includes(q)||(t.doc||'').toLowerCase().includes(q)
@@ -1187,6 +1189,32 @@ document.getElementById('oExportBtn').onclick=async()=>{
 
 // ================= v4: carteira por pessoa, coberturas, trocas e cobrança urgente =================
 let PESSOAS={}, CART={}, COBS=[], EU={email:'',nome:''}, GERIR=false, AVISOS=[];
+let csmF='todos', cartVer=0;
+function passaCsm(c){
+  if(csmF==='todos'||ROLE==='csp')return true;
+  const r=CART[c]||'';
+  return csmF==='sem'?!r:r===csmF;
+}
+function montarFiltroCsm(){
+  const show=ROLE!=='csp'&&Object.keys(CART).length>0;
+  const cont={};for(const r of Object.values(CART)){if(r)cont[r]=(cont[r]||0)+1;}
+  const pessoas=Object.values(PESSOAS).filter(p=>p.papel==='csp'||cont[p.email]).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  const ops=[['todos','Todos os CSMs']].concat(pessoas.map(p=>[p.email,`${p.nome} (${cont[p.email]||0})`]),
+    [['suporte',`Suporte (${cont['suporte']||0})`],['sem','Sem responsável']]);
+  for(const id of ['csmFiltro','oCsmFiltro']){
+    const el=document.getElementById(id);if(!el)continue;
+    el.style.display=show?'':'none';
+    el.innerHTML=ops.map(([v,x])=>`<option value="${esc(v)}">${esc(x)}</option>`).join('');
+    el.value=csmF;if(el.value!==csmF){csmF='todos';el.value='todos';}
+  }
+}
+function mudarCsm(v){
+  csmF=v;page=1;oPage=1;
+  for(const id of ['csmFiltro','oCsmFiltro']){const el=document.getElementById(id);if(el&&el.value!==v)el.value=v;}
+  render();renderOmie();renderUrg();
+}
+document.getElementById('csmFiltro').onchange=e=>mudarCsm(e.target.value);
+document.getElementById('oCsmFiltro').onchange=e=>mudarCsm(e.target.value);
 const ALERTA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
 const ICO_COB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>';
 const ICO_SINO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>';
@@ -1219,7 +1247,7 @@ async function carregarCarteira(){
       api('/rest/v1/coberturas?select=id,titular,substituto,inicio,fim&cancelada=eq.false&fim=gte.'+hojeISO()+'&order=inicio')]);
     PESSOAS={};(p||[]).forEach(x=>PESSOAS[x.email]=x);
     CART={};(c||[]).forEach(x=>CART[x.cnpj]=x.resp_email||'');
-    COBS=cob||[];
+    COBS=cob||[];cartVer++;montarFiltroCsm();
   }catch(e){console.warn('carteira:',e);}
 }
 async function carregarAvisos(){
@@ -1246,7 +1274,7 @@ function atrasados(){
   if(!OMIE)return[];
   const m={};
   for(const t of OMIE.list){
-    if(t._s!=='vencido'||!t.c)continue;
+    if(t._s!=='vencido'||!t.c||!passaCsm(t.c))continue;
     const o=m[t.c]||(m[t.c]={c:t.c,e:t.e,n:0,ve:t.ve||HOJE});
     o.n++;if(t.ve&&t.ve<o.ve)o.ve=t.ve;
   }
@@ -1261,7 +1289,7 @@ function renderUrg(){
   const minha=ROLE==='csp';
   const s=L.length>1?'s':'';
   box.innerHTML=`<div class="urg"><div class="ico">${ALERTA}</div><div style="flex:1;min-width:0">
-    <h3>Cobrança urgente: ${L.length} cliente${s}${minha?' da sua carteira':''} com boleto vencido</h3>
+    <h3>Cobrança urgente: ${L.length} cliente${s}${minha?' da sua carteira':''} com boleto vencido${!minha&&csmF!=='todos'?' · '+esc(csmF==='sem'?'sem responsável':nomeDe(csmF)):''}</h3>
     <p>${minha?'Entre em contato hoje e envie a 2ª via do boleto. O valor é atualizado na hora do pagamento.':'Clientes com boletos vencidos no Omie. Clique para ver os boletos.'}</p>
     <div class="lista">${L.slice(0,8).map(o=>`<button class="cli" onclick="verVencidos('${o.c}')">${esc(o.e)} · ${o.n} boleto${o.n>1?'s':''} · ${txtDias(diasAtraso(o.ve))}</button>`).join('')}${L.length>8?`<button class="cli mais" onclick="verVencidos('')">+${L.length-8} · ver todos</button>`:''}</div>
   </div></div>`;
@@ -1332,7 +1360,7 @@ document.getElementById('csmSave').onclick=async()=>{
   btn.disabled=true;err.textContent='';
   try{
     await rpc('trocar_responsavel',{p_cnpj:trocaCnpj,p_email:novo,p_cliente:nomeCliente(trocaCnpj)});
-    CART[trocaCnpj]=novo;csmOv.classList.remove('show');render();renderOmie();
+    CART[trocaCnpj]=novo;cartVer++;montarFiltroCsm();csmOv.classList.remove('show');render();renderOmie();renderUrg();
   }catch(e){err.textContent='Não consegui trocar: '+(e&&e.message?e.message:e);}
   btn.disabled=false;
 };
