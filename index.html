@@ -958,14 +958,14 @@ function renderOmie(){
   panel.style.display='';bar.style.display='';msg.style.display='none';
   document.getElementById('oSync').textContent='Omie sincronizado em '+new Date(OMIE.t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   document.querySelectorAll('#oTbl thead th[data-k]').forEach(th=>{const sp=th.querySelector('.sar');if(sp)sp.textContent=th.dataset.k===oSortKey?(oSortDir===1?'▲':'▼'):'';});
-  const base=oBase(),sum=s=>base.filter(t=>t._s===s),tot=l=>l.reduce((a,t)=>a+(t.v||0),0);
+  const base=oBase(),sum=s=>base.filter(t=>t._s===s);
   const ab=sum('aberto'),ve=sum('vencido'),rc=sum('recebido');
   const sv='fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
   document.getElementById('oCards').innerHTML=`
-    <div class="card"><div class="top"><span class="chip t"><svg viewBox="0 0 24 24" ${sv}>${I.layers}</svg></span><span class="label">Títulos</span></div><div class="big num">${base.length.toLocaleString('pt-BR')}</div><div class="sub">${brl(tot(base))}</div></div>
-    <div class="card"><div class="top"><span class="chip no"><svg viewBox="0 0 24 24" ${sv}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="label">A vencer</span></div><div class="big num">${ab.length.toLocaleString('pt-BR')}</div><div class="sub">${brl(tot(ab))}</div></div>
-    <div class="card warn"><div class="top"><span class="chip ven"><svg viewBox="0 0 24 24" ${sv}><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span><span class="label">Vencidos</span></div><div class="big num">${ve.length.toLocaleString('pt-BR')}</div><div class="sub">${brl(tot(ve))}</div></div>
-    <div class="card ok"><div class="top"><span class="chip ok"><svg viewBox="0 0 24 24" ${sv}>${I.check}</svg></span><span class="label">Recebidos</span></div><div class="big num">${rc.length.toLocaleString('pt-BR')}</div><div class="sub">${brl(tot(rc))}</div></div>`;
+    <div class="card"><div class="top"><span class="chip t"><svg viewBox="0 0 24 24" ${sv}>${I.layers}</svg></span><span class="label">Títulos</span></div><div class="big num">${base.length.toLocaleString('pt-BR')}</div><div class="sub">cobranças no período</div></div>
+    <div class="card"><div class="top"><span class="chip no"><svg viewBox="0 0 24 24" ${sv}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="label">A vencer</span></div><div class="big num">${ab.length.toLocaleString('pt-BR')}</div><div class="sub">dentro do prazo</div></div>
+    <div class="card warn"><div class="top"><span class="chip ven"><svg viewBox="0 0 24 24" ${sv}><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span><span class="label">Vencidos</span></div><div class="big num">${ve.length.toLocaleString('pt-BR')}</div><div class="sub">passaram do vencimento</div></div>
+    <div class="card ok"><div class="top"><span class="chip ok"><svg viewBox="0 0 24 24" ${sv}>${I.check}</svg></span><span class="label">Recebidos</span></div><div class="big num">${rc.length.toLocaleString('pt-BR')}</div><div class="sub">pagamento baixado</div></div>`;
   const list=oList(),pages=Math.max(1,Math.ceil(list.length/PER));
   cnt.textContent=list.length.toLocaleString('pt-BR');
   if(oPage>pages)oPage=pages;
@@ -990,8 +990,7 @@ function renderOmie(){
       <button class="doc-btn" ${t.nf?'':'disabled title="Título sem nº de NF no Omie"'} ${t.nf?`title="Abrir o PDF da NF ${esc(t.nf)}" onclick="abrirNfOmie('${t.id}')"`:''}>${DLI}NF</button>
       ${boletoCell(t)}
     </div></td></tr>`;}).join('');
-  const v=list.reduce((s,t)=>s+(t.v||0),0);
-  document.getElementById('oFoot').innerHTML=`<tr><td>Total filtrado (${list.length.toLocaleString('pt-BR')})</td><td></td><td></td><td></td><td class="r num">${brl(v)}</td><td colspan="2"></td></tr>`;
+  document.getElementById('oFoot').innerHTML=`<tr><td colspan="7">${list.length.toLocaleString('pt-BR')} título${list.length===1?'':'s'} no filtro</td></tr>`;
   document.getElementById('oPager').innerHTML=`
     <div class="info">Mostrando ${((oPage-1)*PER+1).toLocaleString('pt-BR')}–${Math.min(oPage*PER,list.length).toLocaleString('pt-BR')} de ${list.length.toLocaleString('pt-BR')}</div>
     <div class="pg"><button ${oPage<=1?'disabled':''} onclick="oGo(${oPage-1})">‹ Anterior</button>
@@ -1057,7 +1056,7 @@ document.getElementById('oExportBtn').onclick=async()=>{
     row.getCell(8).numFmt=MONEY;
     if(r[11])row.getCell(12).value={text:'Abrir boleto',hyperlink:r[11]};
   });
-  const tr=ws.getRow(5+linhas.length);tr.getCell(1).value=`Total (${linhas.length})`;tr.getCell(8).value=Math.round(linhas.reduce((s,r)=>s+r[7],0)*100)/100;tr.getCell(8).numFmt=MONEY;
+  const tr=ws.getRow(5+linhas.length);tr.getCell(1).value=`${linhas.length} título${linhas.length===1?'':'s'}`;
   for(let c=1;c<=12;c++){const cell=tr.getCell(c);cell.fill=fillOf(C.slateSoft);cell.font={name:'Calibri',size:10,bold:true,color:{argb:C.ink}};cell.border={top:{style:'medium',color:{argb:C.slate}}};}
   ws.autoFilter='A4:L4';
   const buf=await wb.xlsx.writeBuffer();
