@@ -2,12 +2,13 @@ name: Sincronizar Omie
 
 # Puxa o contas a receber do Omie e grava no Supabase (projeto central-notas-boletos).
 # O painel lê os dados direto do Supabase.
+#
+# Quem dispara: o Supabase (pg_cron), dias úteis às 7h12 e 13h12 de Brasília,
+# pela função interno.disparar_robo_omie(). O agendamento do próprio GitHub
+# não disparava, por isso saiu daqui (evita rodar duas vezes se ele voltar).
+# Para rodar na mão: aba Actions > Sincronizar Omie > Run workflow.
 on:
-  schedule:
-    # 7h12 e 13h12 de Brasília, dias úteis. Fora do minuto 0, que é o horário
-    # de pico do GitHub, quando execuções agendadas atrasam ou são descartadas.
-    - cron: "12 10,16 * * 1-5"
-  workflow_dispatch:            # botão "Run workflow" na aba Actions
+  workflow_dispatch:
 
 permissions:
   contents: read
