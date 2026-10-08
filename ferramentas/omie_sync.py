@@ -10,10 +10,13 @@ Variáveis de ambiente:
   SUPABASE_ROBO_EMAIL             usuário do robô (no workflow)
   SUPABASE_ROBO_SENHA             senha do usuário do robô (secret do GitHub)
   OMIE_DESDE                      data mínima (vencimento ou emissão) dos títulos, AAAA-MM-DD (padrão 2025-01-01)
-  OMIE_MAX_BOLETOS                máximo de consultas novas de boleto por rodada (padrão 3000)
+  OMIE_MAX_BOLETOS                máximo de consultas de boleto por rodada (padrão 3000)
+  OMIE_RENOVAR_BOLETO_HORAS       renova o link do boleto quando faltar menos que isso para
+                                  ele expirar (padrão 12). O Omie devolve links que valem 24 h.
 
 O que já foi consultado (links de boleto, códigos das NFS-e) fica no próprio
-Supabase, então só a 1ª rodada é longa. O repositório é público: os logs
+Supabase. Os links de boleto expiram em 24 h, então o robô pede um link novo
+quando o guardado está perto de vencer (na prática, uma vez por dia). O repositório é público: os logs
 mostram só contagens e nomes de campos, nunca valores, clientes ou CNPJs.
 """
 import collections, concurrent.futures, datetime, json, os, re, sys, threading, time, uuid
@@ -255,21 +258,37 @@ def puxar_titulos(desde):
     return sel
 
 
+def expira_em(link):
+    """Momento (epoch) em que o link assinado do Omie expira, ou None se o link não tiver prazo."""
+    m = re.search(r"[?&]Expires=(\d+)", link or "")
+    return int(m.group(1)) if m else None
+
+
 def puxar_boletos(titulos, maximo, cache):
     alvo = [t for t in titulos
             if isinstance(t.get("boleto"), dict) and str(t["boleto"].get("cGerado", "")).upper() == "S"
             and not fechado(t.get("status_titulo"))]
     chave = lambda t: f"{t.get('data_vencimento')}|{t['boleto'].get('cNumBoleto')}|{t.get('valor_documento')}"
-    links, novos = {}, []
+    margem = float(os.environ.get("OMIE_RENOVAR_BOLETO_HORAS") or 12) * 3600
+    agora = time.time()
+    links, novos, renovar = {}, [], []
     for t in alvo:
         c = cache["bol"].get(str(t["codigo_lancamento_omie"]))
         if c and c.get("k") == chave(t) and c.get("l"):
+            # guarda o link atual como reserva; se a renovação falhar, ele continua lá
             links[t["codigo_lancamento_omie"]] = {"l": c["l"], "cb": c.get("cb", "")}
+            exp = expira_em(c["l"])
+            if exp is not None and exp - agora < margem:
+                renovar.append(t)
         else:
             novos.append(t)
     novos.sort(key=lambda t: iso(t.get("data_vencimento")), reverse=True)
+    renovar.sort(key=lambda t: iso(t.get("data_vencimento")))  # atrasados e os que vencem antes primeiro
+    if renovar:
+        log(f"Links de boleto perto de expirar: {len(renovar)} (renovando)")
+    novos = novos + renovar
     if len(novos) > maximo:
-        log(f"Aviso: {len(novos)} boletos novos; consultando só os {maximo} mais recentes nesta rodada")
+        log(f"Aviso: {len(novos)} boletos para consultar; consultando só {maximo} nesta rodada")
         novos = novos[:maximo]
     falhas, parar, sem_link = [], threading.Event(), []
     def um(t):
@@ -302,7 +321,8 @@ def puxar_boletos(titulos, maximo, cache):
         log("Aviso: muitas falhas no ObterBoleto; parei para não bloquear a API.")
     abertos = {str(t["codigo_lancamento_omie"]) for t in alvo}
     cache["bol"] = {k: v for k, v in cache["bol"].items() if k in abertos}  # só guarda boletos ainda em aberto
-    log(f"Boletos em aberto: {len(alvo)} | do cache: {len(alvo) - len(novos)} | consultados agora: {len(novos)} | com link: {len(links)} | falhas: {len(falhas)}")
+    validos = sum(1 for v in links.values() if (expira_em(v["l"]) or float("inf")) > time.time())
+    log(f"Boletos em aberto: {len(alvo)} | do cache: {len(alvo) - len(novos)} | consultados agora: {len(novos)} (renovações: {len(renovar)}) | com link: {len(links)} | link válido agora: {validos} | falhas: {len(falhas)}")
     return links
 
 
