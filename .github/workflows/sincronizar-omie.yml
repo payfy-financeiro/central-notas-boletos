@@ -3,7 +3,8 @@ name: Sincronizar Omie
 # Puxa o contas a receber do Omie e grava no Supabase (projeto central-notas-boletos).
 # O painel lê os dados direto do Supabase.
 #
-# Quem dispara: o Supabase (pg_cron), dias úteis às 7h12 e 13h12 de Brasília,
+# Quem dispara: o Supabase (pg_cron), todos os dias (inclusive sábado e domingo)
+# às 7h12 e 13h12 de Brasília,
 # pela função interno.disparar_robo_omie(). O agendamento do próprio GitHub
 # não disparava, por isso saiu daqui (evita rodar duas vezes se ele voltar).
 # Para rodar na mão: aba Actions > Sincronizar Omie > Run workflow.
@@ -37,4 +38,6 @@ jobs:
           SUPABASE_KEY: sb_publishable_XAkIjpawOcnnrTG8SuXCng_7BsJYjl7
           SUPABASE_ROBO_EMAIL: robo@central.payfy.io
           SUPABASE_ROBO_SENHA: ${{ secrets.SUPABASE_ROBO_SENHA }}
+          # links de boleto do Omie valem 24 h: com 20 h de margem, cada rodada renova todos
+          OMIE_RENOVAR_BOLETO_HORAS: "20"
         run: python ferramentas/omie_sync.py
