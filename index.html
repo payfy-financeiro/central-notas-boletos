@@ -509,7 +509,7 @@
 <div class="overlay" id="bolOverlay"><div class="modal">
   <div class="modal-head">Link do boleto expirado<small id="bolSub"></small></div>
   <div class="modal-body">
-    <p style="margin:0 0 12px;font-size:13.5px;line-height:1.55">O Omie gera links de boleto que valem 24 horas, e a Central pede links novos toda manhã. Este link venceu antes da renovação.</p>
+    <p style="margin:0 0 12px;font-size:13.5px;line-height:1.55">O Omie gera links de boleto que valem 24 horas, e a Central pede links novos duas vezes por dia. Este link venceu antes da renovação.</p>
     <div class="copy-field" id="bolCbBox"><div style="min-width:0"><div class="cf-label">Linha digitável</div><div class="cf-val" id="bolCb" style="word-break:break-all;font-size:13.5px"></div></div><button onclick="copyVal(this,'bolCb')">Copiar</button></div>
     <div class="note">Para enviar o PDF agora, peça ao Financeiro. O cliente também pode pagar por Pix na conta Santander da Payfy (chave CNPJ 27.450.967/0001-21).</div>
   </div>
@@ -1638,7 +1638,7 @@ async function carregarOmie(){
   OMIE_ERR='';renderOmie();
   try{
     const d=await rpc('omie_compacto');
-    if(!d||!d.tit||!d.tit.length){OMIE=null;OMIE_ERR=ROLE==='csp'?'<b>Nenhuma cobrança de serviço</b> nos clientes que você acompanha.':'<b>Ainda não há dados do Omie.</b> A sincronização roda nos dias úteis, por volta das 7h e das 13h.';renderUrg();renderOmie();return;}
+    if(!d||!d.tit||!d.tit.length){OMIE=null;OMIE_ERR=ROLE==='csp'?'<b>Nenhuma cobrança de serviço</b> nos clientes que você acompanha.':'<b>Ainda não há dados do Omie.</b> A sincronização roda todos os dias, por volta das 7h e das 13h.';renderUrg();renderOmie();return;}
     prepOmie(d);buildOYears();renderUpdated();renderUrg();popupUrgente();
   }catch(e){
     OMIE=null;OMIE_ERR='<b>Não consegui carregar as notas e boletos de serviços agora.</b> Recarregue a página em alguns minutos. <span class="sub-muted">('+esc(e&&e.message?e.message:e)+')</span>';
