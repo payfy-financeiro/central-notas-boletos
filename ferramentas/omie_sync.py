@@ -16,7 +16,7 @@ Variáveis de ambiente:
 
 O que já foi consultado (links de boleto, códigos das NFS-e) fica no próprio
 Supabase. Os links de boleto expiram em 24 h, então o robô pede um link novo
-quando o guardado está perto de vencer (na prática, uma vez por dia). O repositório é público: os logs
+quando o guardado está perto de vencer (no workflow, a cada rodada). O repositório é público: os logs
 mostram só contagens e nomes de campos, nunca valores, clientes ou CNPJs.
 """
 import collections, concurrent.futures, datetime, json, os, re, sys, threading, time, uuid
