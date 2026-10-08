@@ -505,6 +505,17 @@
 </div></div>
 
 <!-- v4: aviso de cobrança urgente ao entrar -->
+<!-- boleto com link expirado -->
+<div class="overlay" id="bolOverlay"><div class="modal">
+  <div class="modal-head">Link do boleto expirado<small id="bolSub"></small></div>
+  <div class="modal-body">
+    <p style="margin:0 0 12px;font-size:13.5px;line-height:1.55">O Omie gera links de boleto que valem 24 horas, e a Central pede links novos toda manhã. Este link venceu antes da renovação.</p>
+    <div class="copy-field" id="bolCbBox"><div style="min-width:0"><div class="cf-label">Linha digitável</div><div class="cf-val" id="bolCb" style="word-break:break-all;font-size:13.5px"></div></div><button onclick="copyVal(this,'bolCb')">Copiar</button></div>
+    <div class="note">Para enviar o PDF agora, peça ao Financeiro. O cliente também pode pagar por Pix na conta Santander da Payfy (chave CNPJ 27.450.967/0001-21).</div>
+  </div>
+  <div class="modal-foot"><button class="btn ghost" id="bolFechar">Fechar</button></div>
+</div></div>
+
 <div class="overlay" id="urgOverlay"><div class="modal wide urg-modal">
   <div class="modal-head" id="urgTitulo">Cobrança urgente<small id="urgSub"></small></div>
   <div class="modal-body">
@@ -1185,7 +1196,17 @@ window.abrirNfOmie=id=>{
   document.getElementById('vNote').innerHTML=NOTE_OMIE;
   vOv.classList.add('show');
 };
-window.abrirBoleto=id=>{const t=OMIE_BY_ID[id];if(t&&t.bol&&t.bol.l)window.open(t.bol.l,'_blank','noopener');};
+const linkExpirado=l=>{const m=/[?&]Expires=(\d+)/.exec(l||'');return !!m&&(+m[1])*1000<Date.now()+60000;};
+window.abrirBoleto=id=>{
+  const t=OMIE_BY_ID[id];if(!t||!t.bol||!t.bol.l)return;
+  if(!linkExpirado(t.bol.l)){window.open(t.bol.l,'_blank','noopener');return;}
+  document.getElementById('bolSub').textContent=`${t.e} · vencimento ${fmtIso(t.ve)}${t.bol.n?' · boleto nº '+t.bol.n:''}`;
+  document.getElementById('bolCb').textContent=t.bol.cb||'';
+  document.getElementById('bolCbBox').style.display=t.bol.cb?'':'none';
+  document.getElementById('bolOverlay').classList.add('show');
+};
+document.getElementById('bolFechar').onclick=()=>document.getElementById('bolOverlay').classList.remove('show');
+document.getElementById('bolOverlay').onclick=e=>{if(e.target.id==='bolOverlay')e.target.classList.remove('show');};
 window.copiarCb=(id,btn)=>{
   const t=OMIE_BY_ID[id];if(!t||!t.bol||!t.bol.cb)return;
   navigator.clipboard.writeText(t.bol.cb).then(()=>{btn.title='Copiado ✓';btn.style.color='var(--teal-deep)';setTimeout(()=>{btn.title='Copiar linha digitável';btn.style.color='';},1400);}).catch(()=>{});
