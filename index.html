@@ -422,7 +422,7 @@
     <div style="display:flex;gap:9px">
       <button class="btn ghost" id="exportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>Exportar</button>
       <button class="btn fin-only" id="uploadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9m0 0 4 4m-4-4-4 4M5 7a5 5 0 0 1 9-3 4 4 0 0 1 4 4 4 4 0 0 1 0 8"/></svg>Atualizar dados</button>
-      <button class="btn ghost fin-only" id="ndBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 3h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M9 13h6M9 17h4"/></svg>Demonstrativo de aportes</button>
+      <button class="btn ghost" id="ndBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 3h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M9 13h6M9 17h4"/></svg>Demonstrativo de aportes</button>
       <button class="btn ghost fin-only" id="ndNotasBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 3h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M12 11v6M9 14h6"/></svg>Notas de débito</button>
     </div>
   </div>
@@ -2172,7 +2172,7 @@ function ndExtenso(v){
     if(temLetra(el.ndCnpj.value)){el.ndMesWrap.style.display='none';if(el.ndSug.children.length)msg('Escolha a empresa na lista.');else msg('Nenhuma empresa encontrada com esse nome. Confira o nome ou digite o CNPJ.','err');return;}
     if(d.length<14){el.ndMesWrap.style.display='none';msg('Digite o nome da empresa ou os 14 números do CNPJ.');return;}
     var ap=aportesDe(d);
-    if(!ap.length){el.ndMesWrap.style.display='none';msg('Nenhum aporte encontrado para esse CNPJ.','err');return;}
+    if(!ap.length){el.ndMesWrap.style.display='none';msg('Nenhum aporte encontrado para esse CNPJ'+(typeof ROLE!=='undefined'&&ROLE==='csp'?' na sua carteira.':'.'),'err');return;}
     var ms=mesesDe(ap);
     if(!soMes){
       el.ndMes.innerHTML=ms.map(function(m){return '<option value="'+m.k+'">'+ndRotuloMes(m.k)+' · '+m.n+' aporte'+(m.n>1?'s':'')+'</option>';}).join('');
@@ -2204,7 +2204,7 @@ function ndExtenso(v){
     try{window.print();}catch(e){document.body.classList.remove('nd-printing');}
   }
   function abrir(){
-    if(typeof ROLE==='undefined'||ROLE!=='fin')return;   // só o financeiro, por enquanto
+    if(typeof ROLE==='undefined'||!ROLE)return;   // financeiro, CS master e CS; a nota de débito segue só do financeiro
     montar();passo(1);el.ndCnpj.value='';el.ndSug.innerHTML='';estado.mes='';el.ndMesWrap.style.display='none';
     msg('Digite o nome da empresa ou os 14 números do CNPJ.');el.ndGerar.disabled=true;
     ov.classList.add('show');setTimeout(function(){el.ndCnpj.focus();},50);
