@@ -315,6 +315,24 @@
   body.nd-printing #ndPrint{display:block!important}
   #ndPrint .nd-doc .nd-sheet{width:auto;min-height:0;margin:0;padding:0;box-shadow:none;border-radius:0}
 }
+
+.nd-lista{display:flex;flex-direction:column}
+.nd-l{display:grid;grid-template-columns:.8fr 2.4fr 1.1fr 1.1fr 1.4fr 2.2fr;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line);font-size:13.5px}
+.nd-l small{display:block;color:var(--muted);font-size:11.5px;margin-top:1px}
+.nd-lh{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.nd-b{font-weight:700;font-variant-numeric:tabular-nums}
+.nd-acoes{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.nd-perigo{color:#8a1f16!important;border-color:#e7b4ae!important}
+.nd-chip{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--slate-soft);color:var(--slate-deep)}
+.nd-chip.aguardando{background:#ffe3c3;color:#764406}
+.nd-chip.confirmada{background:#c9edd8;color:#0e6b38}
+.nd-chip.cancelada{background:#ffd5d0;color:#8a1f16}
+.nd-doc .nd-cancelada{display:inline-block;vertical-align:middle;margin-left:3mm;padding:.6mm 2.4mm;border-radius:1.4mm;border:.3mm solid #c42a1d;color:#c42a1d;font-size:8pt;font-weight:600;letter-spacing:.1em}
+.nd-doc .nd-kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6mm;margin-top:2mm;padding:4mm 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.nd-doc .nd-kv.dois{grid-template-columns:repeat(2,minmax(0,1fr))}
+.nd-doc .nd-kv small{display:block;font-size:6.8pt;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-bottom:1.2mm}
+.nd-doc .nd-kv b{display:block;font-size:9.4pt;font-weight:600;color:var(--ink)}
+.nd-doc table.nd-ap td.desc{padding-right:6mm}
 </style>
 
 <div id="gate">
@@ -399,6 +417,7 @@
       <button class="btn ghost" id="exportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>Exportar</button>
       <button class="btn fin-only" id="uploadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9m0 0 4 4m-4-4-4 4M5 7a5 5 0 0 1 9-3 4 4 0 0 1 4 4 4 4 0 0 1 0 8"/></svg>Atualizar dados</button>
       <button class="btn ghost fin-only" id="ndBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 3h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M9 13h6M9 17h4"/></svg>Demonstrativo de aportes</button>
+      <button class="btn ghost fin-only" id="ndNotasBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 3h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M12 11v6M9 14h6"/></svg>Notas de débito</button>
     </div>
   </div>
   <div class="panel">
@@ -1909,6 +1928,156 @@ function ndExtenso(v){
       '</table></div></div>';
   }
 
+
+  // ---------- nota de débito antecipada ----------
+  function ndBrDate(iso){return new Date(iso).toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'});}
+  function numNota(n){return String(n.seq).padStart(4,'0')+'/'+n.ano;}
+  function buildNota(n){
+    var y=n.competencia.slice(0,4),mm=n.competencia.slice(5,7),mesNome=MESES[+mm-1];
+    var tag=n.situacao==='cancelada'?' <span class="nd-cancelada">CANCELADA</span>':'';
+    return '<div class="nd-doc"><div class="nd-sheet"><table class="nd-page">'+
+      '<thead><tr><td><div class="nd-top"><div class="nd-logo">'+LOGO+'</div>'+
+        '<div class="nd-emissor"><b>'+PAYFY.nome+'</b>CNPJ '+PAYFY.cnpj+' · IM '+PAYFY.im+'<br>'+PAYFY.end+'</div></div></td></tr></thead>'+
+      '<tbody><tr><td>'+
+        '<div class="nd-titulo"><div class="nd-barra"></div><h2>Nota de débito'+tag+'</h2><p>nº '+n.num+' · Competência '+mesNome+' de '+y+'</p></div>'+
+        '<div class="nd-faixa"><div><small>Cliente</small><b>'+ndEsc(n.empresa)+'</b><span>CNPJ '+ndCnpj(n.cnpj)+'</span></div>'+
+          '<div><small>Data de emissão</small><b class="nw">'+n.emissao+'</b></div>'+
+          '<div><small>Competência</small><b class="nw">'+mesNome+'/'+y+'</b></div></div>'+
+        '<h3 class="nd-sec">Especificação do débito</h3>'+
+        '<table class="nd-ap"><thead><tr><th class="i">Item</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>'+
+          '<tr><td class="i">01</td><td class="desc">Aporte para carga de créditos nos cartões dos beneficiários indicados pelo cliente, repassados integralmente, referente à competência '+mesNome+'/'+y+'</td><td class="v">'+ndBrl(n.valor)+'</td></tr></tbody></table>'+
+        '<div class="nd-total"><div><div class="rot">Valor total desta nota de débito</div><div class="ext">('+ndExtenso(n.valor)+')</div></div><div class="val">'+ndBrl(n.valor)+'</div></div>'+
+        '<h3 class="nd-sec">Informações de pagamento</h3>'+
+        '<div class="nd-kv dois"><div><small>Forma de pagamento</small><b>Pix (chave Pix ou QR Code)</b></div><div><small>Destino do aporte</small><b>Carteira do cliente na Payfy</b></div></div>'+
+        '<div class="nd-bloco"><h3 class="nd-sec">Natureza da operação</h3>'+
+          '<p>Esta Nota de Débito possui caráter estritamente financeiro, emitida exclusivamente para fins de aportes a terceiros, sem margem de lucro ou prestação de serviços onerosa. Por se tratar de mero ingresso e repasse de valores para carga de créditos nos cartões dos beneficiários, esta operação não configura fato gerador de ISS, conforme a Solução de Consulta SF/DEJUG nº 11/2025 da Prefeitura de São Paulo (itens 12 e 13) e os arts. 1º e 7º da Lei Complementar nº 116/2003.</p>'+
+          '<p>O serviço de administração (subitem 17.11 da Lei nº 13.701/2003, código 03205) é objeto de NFS-e própria, emitida com taxa de administração de R$ 0,00.</p></div>'+
+      '</td></tr></tbody>'+
+      '<tfoot><tr><td><div class="nd-foot"><span>'+PAYFY.nome+' · Departamento Financeiro · '+PAYFY.email+'</span><span>Gerado pela Central de Notas e Boletos</span></div></td></tr></tfoot>'+
+      '</table></div></div>';
+  }
+  function imprimirHtml(h){
+    var pr=document.getElementById('ndPrint');
+    if(!pr){pr=document.createElement('div');pr.id='ndPrint';document.body.appendChild(pr);}
+    pr.innerHTML=h;document.body.classList.add('nd-printing');
+    try{window.print();}catch(e){document.body.classList.remove('nd-printing');}
+  }
+
+  // ---------- janela das notas de débito (só financeiro) ----------
+  var ovN=null,B={tela:'lista',notas:[],erro:'',carregando:false,form:{cnpj:'',razao:'',mes:'',valor:''},nota:null,busy:false,aviso:''};
+  function mesesOpcoes(){
+    var d=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'})),out=[];
+    for(var i=0;i<4;i++){var x=new Date(d.getFullYear(),d.getMonth()+i,1);out.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0'));}
+    return out;
+  }
+  function valorNum(s){var n=parseFloat(String(s||'').replace(/\./g,'').replace(',','.'));return isFinite(n)&&n>0?Math.round(n*100)/100:0;}
+  function nomeDoCnpj(d){var l=aportesDe(d);return l.length?l[0].e:'';}
+  function nomeForm(){var d=ndDig(B.form.cnpj);return d.length===14?(nomeDoCnpj(d)||B.form.razao.trim()):'';}
+  function formOk(){var d=ndDig(B.form.cnpj);return d.length===14&&!!nomeForm()&&!!B.form.mes&&valorNum(B.form.valor)>0;}
+  function chipSit(s){var t={aguardando:'Aguardando aporte',confirmada:'Confirmada',cancelada:'Cancelada'};return '<span class="nd-chip '+s+'">'+(t[s]||ndEsc(s))+'</span>';}
+  function docDe(n){return buildNota({num:numNota(n),empresa:n.empresa,cnpj:n.cnpj,competencia:n.competencia,valor:Number(n.valor),emissao:ndBrDate(n.criado_em),situacao:n.situacao});}
+
+  function montarN(){
+    if(ovN)return;
+    ovN=document.createElement('div');ovN.className='overlay';ovN.id='ndNotasOverlay';
+    document.body.appendChild(ovN);
+    ovN.addEventListener('click',function(e){
+      if(e.target===ovN){fecharN();return;}
+      var t=e.target.closest('[data-nd]');if(!t)return;
+      acaoN(t.getAttribute('data-nd'),t.getAttribute('data-id'));
+    });
+    ovN.addEventListener('input',function(e){
+      var t=e.target;if(!t.getAttribute('data-nf'))return;
+      var k=t.getAttribute('data-nf');
+      if(k==='cnpj'){var d=ndDig(t.value);t.value=d.length===14?ndCnpj(d):d;B.form.cnpj=t.value;if(d.length===14){renderN();var v=document.getElementById('ndnValor');if(v)v.focus();return;}}
+      else B.form[k]=t.value;
+      var b=document.getElementById('ndnVer');if(b)b.disabled=!formOk();
+    });
+    ovN.addEventListener('change',function(e){
+      var t=e.target;if(t.getAttribute('data-nf')==='mes'){B.form.mes=t.value;var b=document.getElementById('ndnVer');if(b)b.disabled=!formOk();}
+    });
+  }
+  function renderN(){
+    var h='',wide=false;
+    if(B.tela==='lista'){
+      var corpo;
+      if(B.carregando)corpo='<div class="nd-note">Carregando as notas…</div>';
+      else if(B.erro)corpo='<div class="nd-note err">'+ndEsc(B.erro)+'</div>';
+      else if(!B.notas.length)corpo='<div class="nd-note">Nenhuma nota de débito emitida ainda. Use “Nova nota” para criar a primeira.</div>';
+      else corpo='<div class="nd-lista"><div class="nd-l nd-lh"><div>Nº</div><div>Cliente</div><div>Competência</div><div>Valor</div><div>Situação</div><div></div></div>'+
+        B.notas.map(function(n){
+          var ab=n.situacao==='aguardando';
+          return '<div class="nd-l"><div class="nd-b">'+numNota(n)+'</div><div><b>'+ndEsc(n.empresa)+'</b><small>'+ndCnpj(n.cnpj)+' · emitida em '+ndBrDate(n.criado_em)+'</small></div>'+
+            '<div>'+ndRotuloMes(n.competencia)+'</div><div class="nd-b">'+ndBrl(Number(n.valor))+'</div><div>'+chipSit(n.situacao)+'</div>'+
+            '<div class="nd-acoes"><button class="btn ghost sm" data-nd="ver" data-id="'+n.id+'">Ver</button>'+
+            (ab?'<button class="btn ghost sm" data-nd="conf" data-id="'+n.id+'">Vincular aporte</button><button class="btn ghost sm nd-perigo" data-nd="canc" data-id="'+n.id+'">Cancelar</button>':'')+'</div></div>';
+        }).join('')+'</div>';
+      h='<div class="modal-head">Notas de débito antecipadas<small>Para clientes que pedem o documento antes de fazer o aporte. Ficam registradas aqui até o aporte chegar ou a nota ser cancelada.</small></div>'+
+        '<div class="modal-body">'+(B.aviso?'<div class="nd-note warn" style="margin-bottom:12px">'+ndEsc(B.aviso)+'</div>':'')+corpo+'</div>'+
+        '<div class="modal-foot"><button class="btn ghost" data-nd="fechar">Fechar</button><button class="btn" data-nd="nova">Nova nota</button></div>';
+      wide=true;
+    }else if(B.tela==='nova'){
+      var d=ndDig(B.form.cnpj),achado=d.length===14?nomeDoCnpj(d):'';
+      var nomeBloco=d.length===14?(achado?'<div class="nd-note" style="margin-bottom:14px"><b>'+ndEsc(achado)+'</b></div>':'<div class="field"><label for="ndnRazao">Razão social</label><input id="ndnRazao" data-nf="razao" type="text" placeholder="Nome do cliente" value="'+ndEsc(B.form.razao)+'"></div>'):'';
+      h='<div class="modal-head">Nova nota de débito<small>Só o financeiro emite. O pagamento é por Pix e cai direto na carteira do cliente.</small></div>'+
+        '<div class="modal-body"><div class="field"><label for="ndnCnpj">CNPJ do cliente</label><input id="ndnCnpj" data-nf="cnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off" value="'+ndEsc(B.form.cnpj)+'"></div>'+nomeBloco+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="field"><label for="ndnMes">Competência</label><select id="ndnMes" data-nf="mes">'+
+          mesesOpcoes().map(function(m){return '<option value="'+m+'"'+(B.form.mes===m?' selected':'')+'>'+ndRotuloMes(m)+'</option>';}).join('')+'</select></div>'+
+        '<div class="field"><label for="ndnValor">Valor (R$)</label><input id="ndnValor" data-nf="valor" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" value="'+ndEsc(B.form.valor)+'"></div></div></div>'+
+        '<div class="modal-foot"><button class="btn ghost" data-nd="lista">Voltar</button><button class="btn" id="ndnVer" data-nd="previa"'+(formOk()?'':' disabled')+'>Visualizar nota</button></div>';
+    }else if(B.tela==='previa'){
+      wide=true;
+      var hoje=new Date().toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'});
+      h='<div class="modal-head">Confira antes de emitir<small>Ao emitir, a nota recebe o próximo número e fica registrada.</small></div>'+
+        '<div class="modal-body"><div class="nd-prev">'+buildNota({num:'a definir',empresa:nomeForm(),cnpj:ndDig(B.form.cnpj),competencia:B.form.mes,valor:valorNum(B.form.valor),emissao:hoje,situacao:'aguardando'})+'</div>'+
+        (B.erro?'<div class="nd-note err" style="margin-top:12px">'+ndEsc(B.erro)+'</div>':'')+'</div>'+
+        '<div class="modal-foot"><button class="btn ghost" data-nd="nova">Voltar</button><button class="btn" data-nd="emitir"'+(B.busy?' disabled':'')+'>'+(B.busy?'Emitindo…':'Emitir nota de débito')+'</button></div>';
+    }else if(B.tela==='ver'){
+      wide=true;
+      h='<div class="modal-head">Nota de débito nº '+numNota(B.nota)+'<small>'+(B.nota.situacao==='cancelada'?'Cancelada. O número fica registrado e não será reaproveitado.':'Registrada na Central.')+'</small></div>'+
+        '<div class="modal-body"><div class="nd-prev">'+docDe(B.nota)+'</div></div>'+
+        '<div class="modal-foot"><button class="btn ghost" data-nd="lista">Voltar</button><button class="btn" data-nd="pdf">Baixar PDF</button></div>';
+    }
+    ovN.innerHTML='<div class="modal nd" role="dialog" aria-modal="true" style="'+(wide?'':'max-width:560px')+'">'+h+'</div>';
+  }
+  async function carregarNotas(){
+    B.carregando=true;B.erro='';renderN();
+    try{B.notas=(await api('/rest/v1/notas_debito?select=*&order=ano.desc,seq.desc&limit=500'))||[];}
+    catch(e){B.erro='Não consegui carregar as notas agora. '+(e&&e.message?e.message:'');}
+    B.carregando=false;renderN();
+  }
+  async function acaoN(a,id){
+    if(a==='fechar')return fecharN();
+    if(a==='lista'){B.tela='lista';B.aviso='';renderN();return;}
+    if(a==='nova'){B.tela='nova';if(!B.form.mes)B.form.mes=mesesOpcoes()[0];B.erro='';renderN();return;}
+    if(a==='previa'){if(formOk()){B.tela='previa';B.erro='';renderN();}return;}
+    if(a==='ver'){B.nota=B.notas.filter(function(n){return String(n.id)===String(id);})[0];if(B.nota){B.tela='ver';renderN();}return;}
+    if(a==='pdf'){imprimirHtml(docDe(B.nota));return;}
+    if(a==='emitir'){
+      if(B.busy)return;B.busy=true;B.erro='';renderN();
+      try{
+        var d=ndDig(B.form.cnpj);
+        var r=await rpc('emitir_nota_debito',{p_cnpj:d,p_empresa:nomeForm(),p_competencia:B.form.mes,p_valor:valorNum(B.form.valor)});
+        B.busy=false;B.form={cnpj:'',razao:'',mes:'',valor:''};B.nota=r;B.tela='ver';B.aviso='';renderN();
+        try{B.notas=(await api('/rest/v1/notas_debito?select=*&order=ano.desc,seq.desc&limit=500'))||B.notas;}catch(e){}
+      }catch(e){B.busy=false;B.erro='Não consegui emitir a nota. '+(e&&e.message?e.message:'');renderN();}
+      return;
+    }
+    if(a==='conf'||a==='canc'){
+      var n=B.notas.filter(function(x){return String(x.id)===String(id);})[0];if(!n)return;
+      var txt=a==='canc'?'Cancelar a nota de débito nº '+numNota(n)+' de '+n.empresa+'? O número fica registrado como cancelado e não será reaproveitado.':'Confirmar que o aporte da nota nº '+numNota(n)+' ('+n.empresa+') já foi feito?';
+      if(!window.confirm(txt))return;
+      try{await rpc('alterar_situacao_nota_debito',{p_id:n.id,p_situacao:a==='canc'?'cancelada':'confirmada'});B.aviso='';await carregarNotas();}
+      catch(e){B.aviso='Não consegui alterar a nota. '+(e&&e.message?e.message:'');renderN();}
+    }
+  }
+  function abrirNotas(){
+    if(typeof ROLE==='undefined'||ROLE!=='fin')return;   // só o financeiro
+    montarN();B.tela='lista';B.aviso='';B.form={cnpj:'',razao:'',mes:'',valor:''};
+    ovN.classList.add('show');carregarNotas();
+  }
+  function fecharN(){if(ovN)ovN.classList.remove('show');}
+
   // ---------- janela ----------
   var ov=null,el={},estado={cnpj:'',mes:'',passo:1};
   function montar(){
@@ -1984,10 +2153,13 @@ function ndExtenso(v){
     ov.classList.add('show');setTimeout(function(){el.ndCnpj.focus();},50);
   }
   function fechar(){if(ov)ov.classList.remove('show');}
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){fecharN();}});
 
-  window.NdDemo={abrir:abrir,fechar:fechar,_build:buildDoc};
+  window.NdDemo={abrir:abrir,fechar:fechar,abrirNotas:abrirNotas,_build:buildDoc,_nota:buildNota};
   var b=document.getElementById('ndBtn');
   if(b)b.addEventListener('click',abrir);
+  var bn=document.getElementById('ndNotasBtn');
+  if(bn)bn.addEventListener('click',abrirNotas);
 })();
 
 </script>
