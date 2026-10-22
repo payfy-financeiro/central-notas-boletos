@@ -926,7 +926,7 @@ function mergeData(idx,idxVal,clients,aportesText){
       const cin=(r[3]||'').trim();if(!cin)continue;
       const dp=(r[2]||'').split('/');if(dp.length<3)continue;
       const yy=+dp[2],mm=+dp[1],dd=+dp[0];if(!yy||yy<2022)continue;
-      const cj=digits(r[1]);if(!allClients.has(cj))continue;
+      const cj=digits(r[1]);if(cj.length!==14)continue; // aceita CNPJ novo (sem nota ainda); antes só entrava quem já estava na base ou nas notas
       const cc=parseInt(cin,10);if(isNaN(cc))continue;
       const iso=`${String(yy).padStart(4,'0')}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
       const kk=cj+'|'+iso+'|'+cc;seq[kk]=(seq[kk]||0)+1;
