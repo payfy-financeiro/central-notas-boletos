@@ -4,7 +4,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
   :root{
     --teal:#2f9f95;--teal-bright:#51BCB2;--teal-soft:#e4f4f1;--teal-deep:#1f7d74;
     --orange:#FF7636;--orange-soft:#ffe8db;--orange-ink:#c2531c;
@@ -259,6 +259,63 @@
   #gatePwLink{color:var(--muted);font-weight:500}
   @media(max-width:820px){.gate-wrap{grid-template-columns:1fr;gap:26px;max-width:420px}.gate-brand h1{font-size:28px}.gate-brand .brand{margin-bottom:14px}.gate-lead{margin-bottom:0}.gate-pontos{display:none}.gate-card{justify-self:stretch;max-width:none}}
 </style>
+<style id="nd-css">
+/* ===== Demonstrativo de aportes (financeiro) ===== */
+.modal.nd{max-width:980px}
+.nd-info{margin:0 0 14px;font-size:13px;color:var(--muted)}
+.nd-note{border-radius:11px;padding:11px 13px;font-size:13.5px;background:var(--slate-soft);color:var(--slate-deep)}
+.nd-note.err{background:#ffefed;color:#8a1f16}
+.nd-note.warn{background:#fff3e5;color:#6b3a00}
+.nd-prev{background:var(--slate-soft);border-radius:12px;padding:14px;max-height:62vh;overflow:auto}
+.nd-prev .nd-sheet{zoom:.78}
+#ndPrint{display:none}
+.nd-doc{--ink:#1F1B19;--body:#3D3936;--mut:#807571;--line:#EAE5E2;--orange:#FA7838;
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:9.4pt;line-height:1.5;color:var(--body);
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+.nd-doc *{box-sizing:border-box}
+.nd-doc .nd-sheet{width:210mm;min-height:297mm;background:#fff;margin:0 auto;padding:15mm 18mm 18mm;box-shadow:0 10px 30px rgba(31,27,25,.14);border-radius:4px}
+/* isola as tabelas do documento das regras globais de tabela da Central */
+.nd-doc.nd-doc :is(table,thead,tbody,tfoot,tr,th,td){all:revert}
+.nd-doc table.nd-page{width:100%;border-collapse:collapse}
+.nd-doc table.nd-page>thead>tr>td,.nd-doc table.nd-page>tbody>tr>td,.nd-doc table.nd-page>tfoot>tr>td{padding:0;border:0}
+.nd-doc .nd-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12mm;padding-bottom:4mm}
+.nd-doc .nd-logo svg{height:8.6mm;width:auto;display:block;color:var(--ink)}
+.nd-doc .nd-emissor{text-align:right;font-size:7.8pt;line-height:1.5;color:var(--mut)}
+.nd-doc .nd-emissor b{display:block;font-size:8.6pt;font-weight:600;color:var(--ink);letter-spacing:.01em}
+.nd-doc .nd-titulo{margin-top:6mm}
+.nd-doc .nd-barra{width:11mm;height:1.1mm;background:var(--orange);border-radius:1mm;margin-bottom:5mm}
+.nd-doc .nd-titulo h2{margin:0;font-size:24pt;line-height:1.1;font-weight:600;letter-spacing:-.025em;color:var(--ink)}
+.nd-doc .nd-titulo p{margin:2.4mm 0 0;font-size:11pt;color:var(--mut)}
+.nd-doc .nd-faixa{display:grid;grid-template-columns:2.1fr .9fr 1.25fr;gap:8mm;margin-top:8mm;padding:4.5mm 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.nd-doc .nd-faixa small{display:block;font-size:6.8pt;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-bottom:1.6mm}
+.nd-doc .nd-faixa b{display:block;font-size:10.4pt;font-weight:600;color:var(--ink);line-height:1.3}
+.nd-doc .nd-faixa .nw{white-space:nowrap}
+.nd-doc .nd-faixa span{display:block;margin-top:.8mm;font-size:8pt;line-height:1.45;color:var(--mut)}
+.nd-doc h3.nd-sec{margin:8mm 0 2mm;break-after:avoid;page-break-after:avoid;font-size:6.8pt;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.nd-doc table.nd-ap{width:100%;border-collapse:collapse}
+.nd-doc table.nd-ap th{padding:2.4mm 0;border-bottom:1px solid var(--ink);text-align:left;font-size:6.8pt;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.nd-doc table.nd-ap td{padding:3.1mm 0;border-bottom:1px solid var(--line);vertical-align:top;font-size:9.2pt;color:var(--body)}
+.nd-doc table.nd-ap tr{break-inside:avoid;page-break-inside:avoid}
+.nd-doc table.nd-ap .i{width:13mm;color:var(--mut)}
+.nd-doc table.nd-ap .d{width:28mm;font-variant-numeric:tabular-nums}
+.nd-doc table.nd-ap .v{text-align:right;width:34mm}
+.nd-doc table.nd-ap td.v{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.nd-doc .nd-total{display:flex;justify-content:space-between;align-items:flex-end;gap:8mm;padding-top:5mm;border-top:1.5px solid var(--ink);break-inside:avoid;page-break-inside:avoid}
+.nd-doc .nd-total .rot{font-size:6.8pt;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.nd-doc .nd-total .ext{margin-top:1.4mm;font-size:8.6pt;color:var(--mut)}
+.nd-doc .nd-total .val{font-size:22pt;line-height:1;font-weight:600;letter-spacing:-.02em;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.nd-doc .nd-bloco{margin-top:9mm}
+.nd-doc .nd-bloco h3.nd-sec{margin-top:0}
+.nd-doc .nd-bloco p{break-inside:avoid;page-break-inside:avoid;orphans:3;widows:3;margin:0 0 2.2mm;font-size:8.3pt;line-height:1.68;color:var(--body);max-width:165mm}
+.nd-doc .nd-foot{display:flex;justify-content:space-between;gap:8mm;margin-top:6mm;padding-top:3mm;border-top:1px solid var(--line);font-size:7pt;color:var(--mut)}
+@page{size:A4;margin:14mm 18mm 18mm;@bottom-right{content:"Página " counter(page) " de " counter(pages);font-family:'Inter',system-ui,sans-serif;font-size:7pt;color:#807571}}
+@media print{
+  body.nd-printing>*:not(#ndPrint){display:none!important}
+  body.nd-printing{background:#fff!important;overflow:visible!important}
+  body.nd-printing #ndPrint{display:block!important}
+  #ndPrint .nd-doc .nd-sheet{width:auto;min-height:0;margin:0;padding:0;box-shadow:none;border-radius:0}
+}
+</style>
 
 <div id="gate">
   <div class="gate-wrap">
@@ -341,6 +398,7 @@
     <div style="display:flex;gap:9px">
       <button class="btn ghost" id="exportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>Exportar</button>
       <button class="btn fin-only" id="uploadBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21V9m0 0 4 4m-4-4-4 4M5 7a5 5 0 0 1 9-3 4 4 0 0 1 4 4 4 4 0 0 1 0 8"/></svg>Atualizar dados</button>
+      <button class="btn ghost fin-only" id="ndBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 3h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M9 13h6M9 17h4"/></svg>Demonstrativo de aportes</button>
     </div>
   </div>
   <div class="panel">
@@ -1757,4 +1815,179 @@ document.body.classList.add('locked');
   SESS=g.s;
   try{await tokenValido();await entrarComSessao(SESS);}catch(e){SESS=null;guardarSessao();document.getElementById('gateLoad').textContent='';}
 })();
+</script>
+<script id="nd-js">
+
+(function(){
+  'use strict';
+  var PAYFY={nome:'PAYFY S/A',cnpj:'27.450.967/0001-21',im:'7.408.636-7',end:'Av. Paulista, 1471, conj. 511 – Bela Vista – São Paulo/SP – CEP 01311-927',email:'financeiro@payfy.io'};
+  var LOGO='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 429 119" fill="none"><path d="M0 7.89732V114.398C0 116.098 1.37799 117.468 3.07026 117.468H11.8942C13.5946 117.468 14.9645 116.09 14.9645 114.398V22.8779C14.9645 21.1776 16.3425 19.8077 18.0348 19.8077H94.5898C96.2902 19.8077 97.6601 21.1857 97.6601 22.8779V99.433C97.6601 101.133 96.2821 102.503 94.5898 102.503H33.0234C31.3231 102.503 29.9532 103.881 29.9532 105.574V114.398C29.9532 116.098 31.3312 117.468 33.0234 117.468H109.579C111.279 117.468 112.649 116.09 112.649 114.398V7.89732C112.649 6.19699 111.271 4.82706 109.579 4.82706H3.07026C1.36993 4.82706 0 6.20505 0 7.89732Z" fill="#FA7838"></path><path d="M79.6678 34.7722H32.9772C31.3038 34.7722 29.9473 36.1287 29.9473 37.8021V84.4927C29.9473 86.1661 31.3038 87.5226 32.9772 87.5226H79.6678C81.3412 87.5226 82.6977 86.1661 82.6977 84.4927V37.8021C82.6977 36.1287 81.3412 34.7722 79.6678 34.7722Z" fill="#FA7838"></path><path d="M332.135 47.4158H320.531V33.2652H332.135V23.1196C332.135 19.9768 332.409 17.0275 332.957 14.2715C333.505 11.443 334.561 8.96097 336.124 6.84161C337.688 4.72224 339.912 3.07026 342.805 1.88567C345.778 0.628557 349.646 0 354.409 0C356.206 0 357.963 0.0805843 359.687 0.233694C361.404 0.394863 363.088 0.66885 364.732 1.05565L363.91 16.0363C362.894 15.6414 361.96 15.3674 361.097 15.2143C360.235 14.9806 359.26 14.8597 358.164 14.8597C355.352 14.8597 353.24 15.4883 351.83 16.7454C350.42 17.9219 349.719 20.4039 349.719 24.1753V33.2571H362.733V47.4077H349.719V90.5767H332.135V47.4077V47.4158Z" fill="currentColor"></path><path d="M403.02 99.9003C401.851 102.971 400.715 105.678 399.627 108.039C398.531 110.4 397.121 112.367 395.404 113.938C393.76 115.59 391.649 116.807 389.07 117.597C386.492 118.459 383.091 118.894 378.868 118.894H367.587L368.086 104.034H376.29C378.248 104.034 379.844 103.801 381.101 103.325C382.35 102.93 383.365 102.302 384.147 101.439C385.009 100.65 385.71 99.6667 386.258 98.4901C386.806 97.3136 387.394 95.9356 388.015 94.3642L389.304 91.0602L364.331 33.2652H383.325L397.975 71.1318H398.209L410.756 33.2652H428.807L403.011 99.9084L403.02 99.9003Z" fill="currentColor"></path><path d="M292.966 99.9003C291.798 102.971 290.661 105.678 289.565 108.039C288.47 110.4 287.067 112.367 285.343 113.938C283.699 115.59 281.596 116.807 279.009 117.597C276.43 118.459 273.03 118.894 268.807 118.894H257.485L258.017 104.034H266.22C268.17 104.034 269.774 103.801 271.023 103.325C272.272 102.93 273.287 102.302 274.069 101.439C274.931 100.65 275.632 99.6667 276.18 98.4901C276.728 97.3136 277.317 95.9356 277.937 94.3642L279.226 91.0602L254.253 33.2652H273.247L287.897 71.1318H288.131L300.678 33.2652H318.729L292.942 99.9084L292.966 99.9003Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M135.172 33.2571H151.353V40.8079H151.587C152.288 39.7845 153.191 38.7611 154.286 37.7376C155.455 36.6336 156.785 35.6505 158.275 34.7883C159.839 33.926 161.515 33.2169 163.32 32.6689C165.117 32.1209 167.035 31.8469 169.066 31.8469C173.288 31.8469 177.116 32.5964 180.557 34.0872C183.998 35.5054 186.923 37.5442 189.349 40.2196C191.847 42.8144 193.765 45.9169 195.094 49.5352C196.424 53.1534 197.085 57.1262 197.085 61.4455C197.085 65.4586 196.456 69.3106 195.207 73.0013C194.039 76.6196 192.314 79.8429 190.05 82.6714C187.858 85.4999 185.166 87.7805 181.959 89.513C178.752 91.165 175.118 91.987 171.056 91.987C167.381 91.987 163.94 91.439 160.741 90.335C157.615 89.1585 155.036 87.1922 153.005 84.4362H152.771V117.46H135.188V33.2571H135.172ZM151.345 61.921C151.345 66.2484 152.554 69.7457 154.979 72.4211C157.478 75.0965 160.959 76.4342 165.415 76.4342C169.871 76.4342 173.312 75.0965 175.73 72.4211C178.228 69.7457 179.485 66.2484 179.485 61.921C179.485 57.5936 178.236 54.0962 175.73 51.4208C173.304 48.7454 169.871 47.4077 165.415 47.4077C160.959 47.4077 157.486 48.7454 154.979 51.4208C152.554 54.0962 151.345 57.5936 151.345 61.921Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M238.031 83.3887H237.797C235.847 86.4589 233.228 88.6589 229.94 89.9966C226.733 91.3343 223.332 92.0031 219.738 92.0031C217.079 92.0031 214.5 91.6082 212.002 90.8266C209.576 90.1174 207.433 89.0215 205.555 87.5226C203.678 86.0318 202.195 84.1784 201.099 81.9784C200.003 79.7785 199.455 77.224 199.455 74.3149C199.455 71.0109 200.043 68.2227 201.212 65.9422C202.461 63.6616 204.105 61.7759 206.136 60.2771C208.247 58.7863 210.632 57.642 213.283 56.8603C215.943 55.9981 218.674 55.3695 221.487 54.9746C224.38 54.5798 227.232 54.3461 230.045 54.2655C232.938 54.1849 235.597 54.1446 238.015 54.1446C238.015 51.0018 236.878 48.5198 234.614 46.7147C232.422 44.8291 229.811 43.8862 226.757 43.8862C223.864 43.8862 221.205 44.5148 218.787 45.7719C216.442 46.9484 214.331 48.6004 212.453 50.7278L203.073 41.0577C206.353 37.9875 210.189 35.7069 214.565 34.2161C218.94 32.6447 223.477 31.855 228.159 31.855C233.317 31.855 237.539 32.5239 240.819 33.8616C244.179 35.1187 246.839 37.0043 248.789 39.5266C250.819 42.0409 252.23 45.1514 253.011 48.8422C253.793 52.4604 254.18 56.6669 254.18 61.4617V90.5929H237.999V83.3967L238.031 83.3887ZM233.687 65.4587C232.358 65.4587 230.681 65.5392 228.643 65.6923C226.693 65.7729 224.775 66.0872 222.897 66.6352C221.1 67.1832 219.537 68.0132 218.207 69.1091C216.958 70.2131 216.329 71.7442 216.329 73.7105C216.329 75.8298 217.232 77.4093 219.029 78.4247C220.826 79.4481 222.704 79.9558 224.654 79.9558C226.37 79.9558 228.014 79.7221 229.577 79.2466C231.221 78.7712 232.664 78.1104 233.913 77.2401C235.162 76.3778 236.137 75.2738 236.846 73.9361C237.628 72.5984 238.015 71.027 238.015 69.2139V65.4425H233.679L233.687 65.4587Z" fill="currentColor"></path></svg>';
+  var MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  // valor por extenso em reais (pt-BR)
+function ndExtenso(v){
+  const U=['zero','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
+  const D=['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+  const C=['','cento','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+  const ate999=n=>{
+    if(n===0)return '';if(n===100)return 'cem';
+    const c=Math.floor(n/100),r=n%100,p=[];
+    if(c)p.push(C[c]);
+    if(r){if(r<20)p.push(U[r]);else{const d=Math.floor(r/10),u=r%10;p.push(u?D[d]+' e '+U[u]:D[d]);}}
+    return p.join(' e ');
+  };
+  const inteiro=n=>{
+    if(n===0)return 'zero';
+    const grupos=[];let x=n;while(x>0){grupos.push(x%1000);x=Math.floor(x/1000);}
+    const nomes=[['',''],['mil','mil'],['milhão','milhões'],['bilhão','bilhões']];
+    const partes=[];
+    for(let i=grupos.length-1;i>=0;i--){
+      const g=grupos[i];if(!g)continue;
+      let t=(i===1&&g===1)?'mil':ate999(g)+(i?' '+(g===1?nomes[i][0]:nomes[i][1]):'');
+      partes.push({t,g,i});
+    }
+    // conector "e": antes do último grupo se ele for < 100 ou centena exata
+    let s='';
+    partes.forEach((p,k)=>{
+      if(k===0){s=p.t;return;}
+      const ultimo=k===partes.length-1;
+      s+=(ultimo&&(p.g<100||p.g%100===0))?' e '+p.t:' '+p.t;
+    });
+    return s;
+  };
+  const cent=Math.round(v*100),r=Math.floor(cent/100),c=cent%100;
+  const grandes=r>=1e6&&r%1e6===0;
+  let out='';
+  if(r)out=inteiro(r)+(grandes?' de':'')+(r===1?' real':' reais');
+  if(c)out+=(r?' e ':'')+ate999(c)+(c===1?' centavo':' centavos');
+  if(!r&&!c)out='zero real';
+  return out;
+}
+
+
+
+  function ndEsc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function ndDig(t){return String(t||'').replace(/\D/g,'').slice(0,14);}
+  function ndCnpj(c){return c.length===14?c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5'):c;}
+  function ndBrl(v){return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+  function ndData(iso){var p=String(iso).split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+  function ndRotuloMes(m){var p=m.split('-');return MESES[+p[1]-1]+'/'+p[0];}
+
+  function aportesDe(cnpj){
+    if(typeof APORTES==='undefined'||!APORTES)return [];
+    return APORTES.filter(function(a){return a.c===cnpj;});
+  }
+  function mesesDe(list){
+    var m={};list.forEach(function(a){var k=String(a.d).slice(0,7);m[k]=(m[k]||0)+1;});
+    return Object.keys(m).sort().reverse().map(function(k){return {k:k,n:m[k]};});
+  }
+
+  function buildDoc(nome,cnpj,mes,ap){
+    var y=mes.slice(0,4),mm=mes.slice(5,7),mesNome=MESES[+mm-1];
+    ap=ap.slice().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0;});
+    var total=ap.reduce(function(s,a){return s+a.v;},0);
+    var primeira=ndData(ap[0].d),ultima=ndData(ap[ap.length-1].d);
+    var periodo=primeira===ultima?primeira:primeira.slice(0,5)+' a '+ultima;
+    var linhas=ap.map(function(a,i){
+      return '<tr><td class="i">'+String(i+1).padStart(2,'0')+'</td><td class="d">'+ndData(a.d)+'</td><td>Aporte para carga de créditos nos cartões dos beneficiários</td><td class="v">'+ndBrl(a.v)+'</td></tr>';
+    }).join('');
+    return '<div class="nd-doc"><div class="nd-sheet"><table class="nd-page">'+
+      '<thead><tr><td><div class="nd-top"><div class="nd-logo">'+LOGO+'</div>'+
+        '<div class="nd-emissor"><b>'+PAYFY.nome+'</b>CNPJ '+PAYFY.cnpj+' · IM '+PAYFY.im+'<br>'+PAYFY.end+'</div></div></td></tr></thead>'+
+      '<tbody><tr><td>'+
+        '<div class="nd-titulo"><div class="nd-barra"></div><h2>Demonstrativo de aportes</h2><p>Competência '+mesNome+' de '+y+'</p></div>'+
+        '<div class="nd-faixa"><div><small>Cliente</small><b>'+ndEsc(nome)+'</b><span>CNPJ '+ndCnpj(cnpj)+'</span></div>'+
+          '<div><small>Aportes efetuados</small><b class="nw">'+ap.length+'</b></div>'+
+          '<div><small>Período dos aportes</small><b class="nw">'+periodo+'</b></div></div>'+
+        '<h3 class="nd-sec">Aportes efetuados em '+mesNome+' de '+y+'</h3>'+
+        '<table class="nd-ap"><thead><tr><th class="i">Item</th><th class="d">Data</th><th>Descrição</th><th class="v">Valor</th></tr></thead><tbody>'+linhas+'</tbody></table>'+
+        '<div class="nd-total"><div><div class="rot">Total dos aportes efetuados</div><div class="ext">('+ndExtenso(total)+')</div></div><div class="val">'+ndBrl(total)+'</div></div>'+
+        '<div class="nd-bloco"><h3 class="nd-sec">Natureza da operação</h3>'+
+          '<p>Este demonstrativo tem caráter exclusivamente financeiro. Os valores acima foram aportados pelo cliente para carga de créditos nos cartões dos beneficiários por ele indicados e repassados integralmente, sem retenção de qualquer parcela pela Payfy. Por apenas transitarem pela conta da Payfy, esses valores não constituem preço de serviço e não compõem a base de cálculo do ISS, conforme a Solução de Consulta SF/DEJUG nº 11/2025 da Prefeitura de São Paulo (itens 12 e 13) e os arts. 1º e 7º da Lei Complementar nº 116/2003.</p>'+
+          '<p>O serviço de administração (subitem 17.11 da Lei nº 13.701/2003, código 03205) é objeto de NFS-e própria, emitida com taxa de administração de R$ 0,00.</p></div>'+
+      '</td></tr></tbody>'+
+      '<tfoot><tr><td><div class="nd-foot"><span>'+PAYFY.nome+' · Departamento Financeiro · '+PAYFY.email+'</span><span>Gerado pela Central de Notas e Boletos</span></div></td></tr></tfoot>'+
+      '</table></div></div>';
+  }
+
+  // ---------- janela ----------
+  var ov=null,el={},estado={cnpj:'',mes:'',passo:1};
+  function montar(){
+    if(ov)return;
+    ov=document.createElement('div');ov.className='overlay';ov.id='ndOverlay';
+    ov.innerHTML='<div class="modal nd" role="dialog" aria-modal="true" aria-labelledby="ndTit">'+
+      '<div class="modal-head" id="ndTit">Demonstrativo de aportes<small>Lista os aportes efetuados pelo cliente no mês e o valor total</small></div>'+
+      '<div class="modal-body">'+
+        '<div id="ndForm"><div class="field"><label for="ndCnpj">CNPJ do cliente</label><input id="ndCnpj" type="text" inputmode="numeric" placeholder="00.000.000/0000-00" autocomplete="off"></div>'+
+        '<div class="field" id="ndMesWrap" style="display:none"><label for="ndMes">Mês (um por documento)</label><select id="ndMes"></select></div>'+
+        '<div class="nd-note" id="ndMsg">Digite os 14 números do CNPJ para ver os meses com aporte.</div></div>'+
+        '<div id="ndPrev" style="display:none"><div class="nd-prev" id="ndPrevBox"></div></div>'+
+      '</div>'+
+      '<div class="modal-foot"><button class="btn ghost" id="ndCancel">Cancelar</button><div style="display:flex;gap:9px">'+
+        '<button class="btn ghost" id="ndVoltar" style="display:none">Voltar</button>'+
+        '<button class="btn" id="ndGerar" disabled>Visualizar</button>'+
+        '<button class="btn" id="ndPdf" style="display:none">Baixar PDF</button></div></div></div>';
+    document.body.appendChild(ov);
+    var pr=document.createElement('div');pr.id='ndPrint';document.body.appendChild(pr);
+    ['ndCnpj','ndMes','ndMesWrap','ndMsg','ndForm','ndPrev','ndPrevBox','ndCancel','ndVoltar','ndGerar','ndPdf','ndPrint'].forEach(function(id){el[id]=document.getElementById(id);});
+    el.ndCancel.onclick=fechar;
+    ov.onclick=function(e){if(e.target===ov)fechar();};
+    el.ndCnpj.addEventListener('input',function(){
+      var d=ndDig(el.ndCnpj.value);el.ndCnpj.value=d.length===14?ndCnpj(d):d;atualizar();
+    });
+    el.ndMes.onchange=function(){estado.mes=el.ndMes.value;atualizar(true);};
+    el.ndGerar.onclick=visualizar;
+    el.ndVoltar.onclick=function(){passo(1);};
+    el.ndPdf.onclick=imprimir;
+    window.addEventListener('afterprint',function(){document.body.classList.remove('nd-printing');el.ndPrint.innerHTML='';});
+  }
+  function msg(txt,cls){el.ndMsg.className='nd-note'+(cls?' '+cls:'');el.ndMsg.textContent=txt;}
+  function atualizar(soMes){
+    var d=ndDig(el.ndCnpj.value);estado.cnpj=d;
+    el.ndGerar.disabled=true;
+    if(d.length<14){el.ndMesWrap.style.display='none';msg('Digite os 14 números do CNPJ para ver os meses com aporte.');return;}
+    var ap=aportesDe(d);
+    if(!ap.length){el.ndMesWrap.style.display='none';msg('Nenhum aporte encontrado para esse CNPJ.','err');return;}
+    var ms=mesesDe(ap);
+    if(!soMes){
+      el.ndMes.innerHTML=ms.map(function(m){return '<option value="'+m.k+'">'+ndRotuloMes(m.k)+' · '+m.n+' aporte'+(m.n>1?'s':'')+'</option>';}).join('');
+      estado.mes=ms[0].k;el.ndMes.value=estado.mes;
+    }
+    el.ndMesWrap.style.display='';
+    var sel=ap.filter(function(a){return String(a.d).slice(0,7)===estado.mes;});
+    var tot=sel.reduce(function(s,a){return s+a.v;},0);
+    msg(ap[0].e+': '+sel.length+' aporte'+(sel.length>1?'s':'')+' em '+ndRotuloMes(estado.mes)+', total '+ndBrl(tot)+'.');
+    el.ndGerar.disabled=false;
+  }
+  function docAtual(){
+    var ap=aportesDe(estado.cnpj).filter(function(a){return String(a.d).slice(0,7)===estado.mes;});
+    if(!ap.length)return '';
+    return buildDoc(ap[0].e,estado.cnpj,estado.mes,ap);
+  }
+  function passo(n){
+    estado.passo=n;
+    el.ndForm.style.display=n===1?'':'none';el.ndPrev.style.display=n===2?'':'none';
+    el.ndGerar.style.display=n===1?'':'none';el.ndPdf.style.display=n===2?'':'none';el.ndVoltar.style.display=n===2?'':'none';
+  }
+  function visualizar(){
+    var h=docAtual();if(!h)return;
+    el.ndPrevBox.innerHTML=h;passo(2);
+  }
+  function imprimir(){
+    var h=docAtual();if(!h)return;
+    el.ndPrint.innerHTML=h;document.body.classList.add('nd-printing');
+    try{window.print();}catch(e){document.body.classList.remove('nd-printing');}
+  }
+  function abrir(){
+    if(typeof ROLE==='undefined'||ROLE!=='fin')return;   // só o financeiro, por enquanto
+    montar();passo(1);el.ndCnpj.value='';estado.mes='';el.ndMesWrap.style.display='none';
+    msg('Digite os 14 números do CNPJ para ver os meses com aporte.');el.ndGerar.disabled=true;
+    ov.classList.add('show');setTimeout(function(){el.ndCnpj.focus();},50);
+  }
+  function fechar(){if(ov)ov.classList.remove('show');}
+
+  window.NdDemo={abrir:abrir,fechar:fechar,_build:buildDoc};
+  var b=document.getElementById('ndBtn');
+  if(b)b.addEventListener('click',abrir);
+})();
+
 </script>
