@@ -945,10 +945,11 @@ const VALRE=/Valor solicitado:\s*R\$\s*([\d.]*\d,\d{2})/;
 const dDist=(a,b)=>{if(!a||!b)return 1e9;return Math.abs((new Date(a)-new Date(b))/86400000);};
 function readBuf(file){return file.arrayBuffer();}
 
-function parseNotesInto(idx,idxVal,clients,text){
+function parseNotesInto(idx,idxVal,clients,text,canc){
   const rows=parseCSV(text);
   for(let i=1;i<rows.length;i++){const r=rows[i];
-    if(r.length<73||r[28]!=='3205'||(r[23]||'').trim())continue;
+    if(r.length<73||r[28]!=='3205')continue;
+    if((r[23]||'').trim()){const nc=(r[1]||'').trim();if(nc&&canc)canc.add(nc);continue;}   // nota cancelada na prefeitura
     const cj=digits(r[34]);clients.add(cj);
     const note={nf:(r[1]||'').trim(),emiss:(r[2]||'').slice(0,10),cv:(r[3]||'').trim(),im:digits(r[8])};
     const discr=r[72]||'';
@@ -964,7 +965,12 @@ function parseNotesInto(idx,idxVal,clients,text){
     }
   }
 }
-function buildAportes(idx,idxVal,clients,text){
+function dropCanceladas(m,canc){
+  if(!m||!canc||!canc.size)return;
+  for(const k in m){const keep=m[k].filter(n=>!canc.has(n.nf));if(keep.length)m[k]=keep;else delete m[k];}
+}
+function buildAportes(idx,idxVal,clients,text,canc){
+  if(canc&&canc.size){dropCanceladas(idx,canc);dropCanceladas(idxVal,canc);}
   const rows=parseCSV(text),seq={},list=[];
   for(let i=0;i<rows.length;i++){const r=rows[i];
     if(r.length<4||r[0]==='empresa')continue;
@@ -996,7 +1002,7 @@ function buildAportes(idx,idxVal,clients,text){
   list.sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:(a.e.toLowerCase()<b.e.toLowerCase()?-1:1));
   return list;
 }
-function mergeData(idx,idxVal,clients,aportesText){
+function mergeData(idx,idxVal,clients,aportesText,canc){
   const byId=new Map();
   APORTES.forEach(a=>byId.set(a.id,Object.assign({},a)));
   const allClients=new Set(clients);
@@ -1020,6 +1026,12 @@ function mergeData(idx,idxVal,clients,aportesText){
     }
   }
   const apply=(a,n)=>{a.nf=n.nf;a.nfd=n.emiss;a.cv=n.cv;if(n.im&&n.im!==IM)a.im=n.im;};
+  // nota cancelada na prefeitura: descarta a linha antiga dela e solta o aporte para a nota nova entrar
+  let cleared=0;
+  if(canc&&canc.size){
+    dropCanceladas(idx,canc);dropCanceladas(idxVal,canc);
+    byId.forEach(a=>{if(a.nf&&canc.has(a.nf)){a.nf='';a.nfd='';a.cv='';cleared++;}});
+  }
   const byKey={},byCV={},appliedSet=new Set();
   byId.forEach(a=>{
     const cc=Math.round(a.v*100);
@@ -1053,13 +1065,13 @@ function mergeData(idx,idxVal,clients,aportesText){
     apply(best,n);if(n.nf)appliedSet.add(tag);applied++;
   }}
   const list=[...byId.values()].sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:(a.e.toLowerCase()<b.e.toLowerCase()?-1:1));
-  return {list,added,applied,orphan};
+  return {list,added,applied,orphan,cleared};
 }
 document.getElementById('upProcess').onclick=async()=>{
   const st=document.getElementById('upStatus');
   const antes=new Map(APORTES.map(a=>[a.id,a]));
   try{
-    const idx={},idxVal={},clients=new Set();
+    const idx={},idxVal={},clients=new Set(),canc=new Set();
     if(upNotasFiles&&upNotasFiles.length){
       st.textContent='Lendo notas emitidas…';
       for(const f of upNotasFiles){
@@ -1067,9 +1079,9 @@ document.getElementById('upProcess').onclick=async()=>{
           if(typeof JSZip==='undefined'){st.textContent='Não consegui carregar o leitor de .zip. Suba os .csv das notas direto.';return;}
           const zip=await JSZip.loadAsync(await readBuf(f));
           const names=Object.keys(zip.files).filter(n=>/\.csv$/i.test(n)&&!zip.files[n].dir);
-          for(const nm of names){const buf=await zip.files[nm].async('arraybuffer');parseNotesInto(idx,idxVal,clients,new TextDecoder('iso-8859-1').decode(buf));}
+          for(const nm of names){const buf=await zip.files[nm].async('arraybuffer');parseNotesInto(idx,idxVal,clients,new TextDecoder('iso-8859-1').decode(buf),canc);}
         }else{
-          parseNotesInto(idx,idxVal,clients,new TextDecoder('iso-8859-1').decode(await readBuf(f)));
+          parseNotesInto(idx,idxVal,clients,new TextDecoder('iso-8859-1').decode(await readBuf(f)),canc);
         }
       }
     }
@@ -1083,15 +1095,15 @@ document.getElementById('upProcess').onclick=async()=>{
     await new Promise(r=>setTimeout(r,30));
     let msg;
     if(upMode==='replace'){
-      const list=buildAportes(idx,idxVal,clients,aportesTxt||'');
+      const list=buildAportes(idx,idxVal,clients,aportesTxt||'',canc);
       if(!list.length){st.textContent='Nenhum aporte de cliente 3205 encontrado. Confira as duas planilhas.';return;}
       APORTES=list;
       const emit=list.filter(a=>a.nf).length;
       msg=`✓ ${list.length.toLocaleString('pt-BR')} aportes · ${emit.toLocaleString('pt-BR')} com NF`;
     }else{
-      const {list,added,applied,orphan}=mergeData(idx,idxVal,clients,aportesTxt);
+      const {list,added,applied,orphan,cleared}=mergeData(idx,idxVal,clients,aportesTxt,canc);
       APORTES=list;
-      msg=`✓ +${added.toLocaleString('pt-BR')} aportes · +${applied.toLocaleString('pt-BR')} notas aplicadas`+(orphan?` · ${orphan.toLocaleString('pt-BR')} nota(s) sem aporte na base`:'');
+      msg=`✓ +${added.toLocaleString('pt-BR')} aportes · +${applied.toLocaleString('pt-BR')} notas aplicadas`+(cleared?` · ${cleared.toLocaleString('pt-BR')} nota(s) cancelada(s) removida(s)`:'')+(orphan?` · ${orphan.toLocaleString('pt-BR')} nota(s) sem aporte na base`:'');
     }
     lastUpdate=new Date().toISOString();dataVer++;
     st.textContent=msg+' · salvando para o time…';
