@@ -254,6 +254,10 @@
   .btn.perigo:hover{border-color:#b3121f}
   .cart-modelo{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12.5px;line-height:1.5;margin-bottom:13px;color:var(--ink)}
   .cart-modelo .btn{flex:none}
+  .cart-tit{font-weight:800;font-size:13px;margin:0 0 8px}
+  .cart-exp{display:flex;gap:8px;align-items:center;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .cart-exp select{flex:1;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;background:#fdfdfb;color:var(--ink)}
+  .cart-exp .btn{flex:none}
   @media(max-width:700px){.ac-form{grid-template-columns:1fr}.lst .it{flex-wrap:wrap}.cart-modelo{flex-direction:column;align-items:flex-start}.ac-sec .q.sub{display:none}}
   /* ---- tela de entrada (v4) ---- */
   #gate{overflow:auto;background:radial-gradient(640px 420px at 10% 12%,rgba(255,118,54,.20),transparent 62%),radial-gradient(760px 520px at 92% 92%,rgba(81,188,178,.38),transparent 60%),linear-gradient(150deg,#2a3c40 0%,#3f5a60 55%,#1f7d74 100%)}
@@ -605,8 +609,14 @@
 
 <!-- v4: importar planilha da carteira -->
 <div class="overlay" id="cartOverlay"><div class="modal">
-  <div class="modal-head">Carteira do CS<small>Planilha com as colunas CNPJ e CSM responsável</small></div>
+  <div class="modal-head">Carteira do CS<small>Exporte a lista de clientes por CSM ou atualize a carteira com uma planilha</small></div>
   <div class="modal-body">
+    <div class="cart-tit">Exportar a carteira</div>
+    <div class="cart-exp">
+      <select id="cartExpSel" aria-label="De quem é a lista"></select>
+      <button class="btn ghost sm" id="cartExport">Exportar</button>
+    </div>
+    <div class="cart-tit">Atualizar a carteira</div>
     <div class="cart-modelo"><div><b>1.</b> Baixe o modelo e preencha um CNPJ por linha, escolhendo o nome na lista.<br><b>2.</b> Suba a planilha preenchida aqui embaixo.</div>
       <button class="btn ghost sm" id="cartModelo">Baixar modelo</button></div>
     <div class="drop" id="dropCart">
@@ -1692,6 +1702,7 @@ window.abrirCart=()=>{
   cartLinhas=null;document.getElementById('fileCart').textContent='';document.getElementById('cartSave').disabled=true;
   document.getElementById('cartErr').textContent='';
   document.getElementById('cartResumo').innerHTML='Atualiza o responsável dos clientes que estão na planilha. Quem não aparece nela continua como está. "Suporte" fica visível para todo o CS.';
+  montarExpCarteira();
   cartOv.classList.add('show');
 };
 document.getElementById('cartCancel').onclick=()=>cartOv.classList.remove('show');
@@ -1776,6 +1787,11 @@ document.getElementById('cartSave').onclick=async()=>{
   }catch(e){err.textContent='Não consegui importar: '+(e&&e.message?e.message:e);btn.disabled=false;}
 };
 
+// lista suspensa de nomes (aba "Nomes"); vai numa faixa só, porque célula a célula o ExcelJS grava faixas sobrepostas
+const listaNomes=n=>({type:'list',allowBlank:true,formulae:[`Nomes!$A$2:$A$${n+1}`],
+  showErrorMessage:true,errorStyle:'stop',errorTitle:'Nome fora da lista',
+  error:'Escolha um nome da lista. Se a pessoa não aparece, peça ao financeiro para liberar o acesso dela na Central.'});
+
 // v5: modelo da carteira para o CS preencher (CNPJ + CSM responsável em lista suspensa)
 document.getElementById('cartModelo').onclick=async()=>{
   const err=document.getElementById('cartErr');err.textContent='';
@@ -1803,11 +1819,9 @@ document.getElementById('cartModelo').onclick=async()=>{
       c.fill=fillOf(C.tealSoft);c.alignment={vertical:'middle',indent:1,wrapText:true};});
     for(let r=2;r<=LINHAS+1;r++){
       const a=ws.getCell('A'+r);a.numFmt='@';a.font={name:'Calibri',size:11};
-      const b=ws.getCell('B'+r);b.font={name:'Calibri',size:11};
-      b.dataValidation={type:'list',allowBlank:true,formulae:[`Nomes!$A$2:$A$${nomes.length+1}`],
-        showErrorMessage:true,errorStyle:'stop',errorTitle:'Nome fora da lista',
-        error:'Escolha um nome da lista. Se a pessoa não aparece, peça ao financeiro para liberar o acesso dela na Central.'};
+      ws.getCell('B'+r).font={name:'Calibri',size:11};
     }
+    ws.dataValidations.add(`B2:B${LINHAS+1}`,listaNomes(nomes.length));
     cab(wn.getCell('A1'),'Nomes com acesso à Central');wn.getColumn(1).width=34;
     nomes.forEach((n,i)=>{const c=wn.getCell('A'+(i+2));c.value=n;c.font={name:'Calibri',size:11,color:{argb:C.ink}};});
     wn.state='hidden';
@@ -1815,6 +1829,74 @@ document.getElementById('cartModelo').onclick=async()=>{
     const u=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),l=document.createElement('a');
     l.href=u;l.download='Modelo_carteira_CS.xlsx';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
   }catch(e){err.textContent='Não consegui gerar o modelo: '+(e&&e.message?e.message:e);}
+  btn.disabled=false;
+};
+
+// v6: exportar a carteira (de uma pessoa, do Suporte, sem responsável ou todos os clientes)
+function mapaClientes(){ // CNPJ → nome do cliente; o nome do Omie tem prioridade, como em nomeCliente()
+  const m={};
+  for(const a of APORTES){if(a.c&&!m[a.c])m[a.c]=a.e;}
+  if(OMIE)for(const t of OMIE.list){if(t.c&&t.e)m[t.c]=t.e;}
+  return m;
+}
+const clientesCarteira=nomes=>[...new Set([...Object.keys(CART),...Object.keys(nomes)])];
+function montarExpCarteira(){
+  const lista=clientesCarteira(mapaClientes()),cont={};let sem=0;
+  for(const c of lista){const r=CART[c]||'';if(r)cont[r]=(cont[r]||0)+1;else sem++;}
+  const nf=n=>n.toLocaleString('pt-BR');
+  const pessoas=Object.keys(cont).filter(e=>e!=='suporte').sort((a,b)=>nomeDe(a).localeCompare(nomeDe(b),'pt-BR'));
+  const ops=[['todos',`Todos os clientes (${nf(lista.length)})`]]
+    .concat(pessoas.map(e=>[e,`${nomeDe(e)} (${nf(cont[e])})`]))
+    .concat(cont.suporte?[['suporte',`Suporte (${nf(cont.suporte)})`]]:[])
+    .concat(sem?[['sem',`Sem responsável (${nf(sem)})`]]:[]);
+  document.getElementById('cartExpSel').innerHTML=ops.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');
+}
+document.getElementById('cartExport').onclick=async()=>{
+  const err=document.getElementById('cartErr');err.textContent='';
+  if(typeof ExcelJS==='undefined'){err.textContent='O gerador de Excel não carregou. Recarregue a página e tente de novo.';return;}
+  const quem=document.getElementById('cartExpSel').value;
+  const btn=document.getElementById('cartExport');btn.disabled=true;
+  try{
+    const nomesCli=mapaClientes();
+    const linhas=clientesCarteira(nomesCli).filter(c=>{const r=CART[c]||'';return quem==='todos'||(quem==='sem'?!r:r===quem);})
+      .map(c=>{const r=CART[c]||'';return {c,cli:nomesCli[c]||'',resp:r?nomeDe(r):''};})
+      .sort((a,b)=>(!a.resp-!b.resp)||a.resp.localeCompare(b.resp,'pt-BR')||a.cli.localeCompare(b.cli,'pt-BR')||a.c.localeCompare(b.c));
+    const titulo=quem==='todos'?'Todos os clientes':quem==='sem'?'Sem responsável':nomeDe(quem);
+    const validos=Object.values(PESSOAS).filter(p=>p.ativo&&['csp','cs'].includes(p.papel)).map(p=>p.nome)
+      .sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    validos.push('Suporte');
+    const wb=new ExcelJS.Workbook();wb.creator='Central de Notas e Boletos · Payfy';
+    const ws=wb.addWorksheet('Carteira',{views:[{state:'frozen',ySplit:1,showGridLines:false}]});
+    const wn=wb.addWorksheet('Nomes');
+    ws.columns=[{width:22},{width:52},{width:28},{width:3},{width:70}];
+    const cab=(cell,txt)=>{cell.value=txt;cell.font={name:'Calibri',size:11,bold:true,color:{argb:C.white}};
+      cell.fill=fillOf(C.slate);cell.alignment={vertical:'middle',indent:1};};
+    cab(ws.getCell('A1'),'CNPJ');cab(ws.getCell('B1'),'Cliente');cab(ws.getCell('C1'),'CSM responsável');cab(ws.getCell('E1'),'Sobre esta lista');
+    ws.getRow(1).height=22;
+    linhas.forEach((x,i)=>{
+      const row=ws.getRow(i+2);
+      [fmtCNPJ(x.c),x.cli,x.resp].forEach((v,j)=>{const cell=row.getCell(j+1);cell.value=v;
+        cell.font={name:'Calibri',size:10,color:{argb:C.ink}};cell.border={bottom:{style:'thin',color:{argb:C.rowline}}};
+        if(i%2)cell.fill=fillOf(C.zebra);});
+      row.getCell(1).numFmt='@';
+    });
+    ws.dataValidations.add(`C2:C${linhas.length+201}`,listaNomes(validos.length));
+    if(linhas.length)ws.autoFilter={from:'A1',to:'C1'};
+    const qtd=linhas.length;
+    ['Lista: '+titulo,`${qtd.toLocaleString('pt-BR')} cliente${qtd===1?'':'s'} · exportada em ${new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}`,
+      'Para passar clientes para outra pessoa: troque o nome na coluna C e importe a planilha na Central (Carteira do CS).',
+      'Linhas sem CSM responsável não são importadas.']
+      .forEach((t,i)=>{const c=ws.getCell('E'+(i+2));c.value=t;c.font={name:'Calibri',size:10,bold:i===0,color:{argb:C.ink}};
+        c.fill=fillOf(C.tealSoft);c.alignment={vertical:'middle',indent:1,wrapText:true};});
+    cab(wn.getCell('A1'),'Nomes com acesso à Central');wn.getColumn(1).width=34;
+    validos.forEach((n,i)=>{const c=wn.getCell('A'+(i+2));c.value=n;c.font={name:'Calibri',size:11,color:{argb:C.ink}};});
+    wn.state='hidden';
+    const buf=await wb.xlsx.writeBuffer();
+    const d=new Date(),hoje=`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+    const slug=titulo.normalize('NFD').replace(/[^A-Za-z0-9 ]+/g,'').trim().replace(/ +/g,'_');
+    const u=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),l=document.createElement('a');
+    l.href=u;l.download=`Carteira_CS_${slug}_${hoje}.xlsx`;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+  }catch(e){err.textContent='Não consegui exportar: '+(e&&e.message?e.message:e);}
   btn.disabled=false;
 };
 
