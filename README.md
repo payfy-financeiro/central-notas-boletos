@@ -1,6 +1,6 @@
 # Central de Notas e Boletos · Payfy
 
-Painel: https://payfy-financeiro.github.io/controle-nf-aportes/
+Painel: https://payfy-financeiro.github.io/central-notas-boletos/
 
 Duas abas:
 
@@ -17,16 +17,31 @@ Tudo fica no **Supabase**, no projeto `central-notas-boletos` (região São Paul
 | `omie_titulos` | títulos do contas a receber do Omie, com link do boleto | robô |
 | `nfse` | código de verificação das NFS-e (para o PDF na prefeitura) | robô |
 | `meta` | datas da última atualização | financeiro e robô |
+| `cs_pessoas` | quem tem acesso à Central e com qual perfil | financeiro, pelo botão "Acessos" |
+| `carteira` | CNPJ → CSM responsável | financeiro (planilha ou troca) e CS master (troca) |
+| `carteira_log` | histórico de trocas, coberturas, importações e acessos | as próprias funções do banco |
 
 ## Acessos
 
-| Senha | Usuário no Supabase | O que pode |
-|---|---|---|
-| Financeiro | `financeiro@central.payfy.io` | ver tudo, "Atualizar dados", "Editar" |
-| CS | `cs@central.payfy.io` | só consultar (o banco recusa qualquer gravação) |
-| Robô | `robo@central.payfy.io` | gravar só os dados do Omie |
+Login com a conta Google, só para e-mails **@payfy.io**. Entrar com o Google não basta: a pessoa precisa estar liberada na Central.
+
+O financeiro libera, troca o perfil e desativa pelo botão **Acessos**, no topo da Central. Quem tentar entrar sem acesso aparece sozinho em "Aguardando liberação". Ao desativar alguém com carteira, a Central pede para quem os clientes vão.
+
+| Perfil | O que vê e faz |
+|---|---|
+| CS | só os clientes da própria carteira e os do Suporte |
+| CS master | todos os clientes; troca CSM e cria coberturas de férias |
+| Financeiro | tudo; atualiza os dados, importa a carteira e gerencia os acessos |
+
+O robô usa o usuário `robo@central.payfy.io` e grava só os dados do Omie.
 
 As regras de acesso ficam no próprio banco (Row Level Security). Sem login, ninguém vê nada.
+
+## Carteira do CS
+
+Em **Carteira do CS → Baixar modelo**, o financeiro baixa a planilha com as colunas **CNPJ** e **CSM responsável**. A coluna do nome vem com lista suspensa só com quem tem acesso (mais "Suporte").
+
+Na importação, só mudam os clientes que estão na planilha. Linhas com nome sem acesso ficam de fora e o cliente continua com quem já estava. Antes de importar, a Central mostra quantos clientes cada pessoa recebe e de quem eles saem.
 
 ## Robô do Omie
 
@@ -37,7 +52,7 @@ As regras de acesso ficam no próprio banco (Row Level Security). Sem login, nin
 
 ## Atualizar os aportes
 
-No painel, com a senha do financeiro, clique em **Atualizar dados** e suba o relatório de cargas e o CSV de NFS-e da prefeitura. Cargas e notas que já estão na base são ignoradas, então não duplicam.
+No painel, com o acesso de financeiro, clique em **Atualizar dados** e suba o relatório de cargas e o CSV de NFS-e da prefeitura. Cargas e notas que já estão na base são ignoradas, então não duplicam.
 
 ## Arquivos antigos
 

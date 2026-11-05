@@ -223,6 +223,38 @@
   .btn.sm{padding:6px 11px;font-size:12px;box-shadow:none}
   .resumo-cart{font-size:12.5px;line-height:1.6;color:var(--ink)}
   .resumo-cart .alerta{color:var(--orange-ink);font-weight:700}
+  /* ---- v5: acessos e modelo da carteira ---- */
+  .modal.acessos{max-width:760px}
+  .modal.acessos .modal-body{max-height:calc(100vh - 190px);overflow:auto}
+  .ac-sec{font-weight:800;font-size:13px;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+  .ac-sec:first-child{margin-top:0}
+  .ac-sec .n{background:var(--orange);color:#fff;border-radius:999px;padding:0 7px;font-size:11px;line-height:18px;min-width:18px;text-align:center}
+  .ac-sec .q{color:var(--muted);font-weight:600;font-size:12px}
+  .lst.pend{border-color:#ffd2bd;background:#fffaf6}
+  .lst.pend .it{border-top-color:#ffe3d4}
+  .lst .it .ac-acoes{display:flex;gap:8px;align-items:center;flex:none}
+  .lst .it select.mini{padding:6px 8px;border:1px solid var(--line);border-radius:9px;font-family:inherit;font-size:12px;background:#fdfdfb;color:var(--ink)}
+  .lst .it.off{opacity:.62}
+  .ac-tag{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.02em;border-radius:999px;padding:1px 8px;margin-left:7px;vertical-align:1px}
+  .ac-tag.fin{background:var(--orange-soft);color:var(--orange-ink)}
+  .ac-tag.cs{background:var(--slate-soft);color:var(--slate)}
+  .ac-tag.csp{background:var(--teal-soft);color:var(--teal-deep)}
+  .ac-tag.off{background:var(--neutral-soft);color:var(--neutral)}
+  .ac-form{display:grid;grid-template-columns:1.2fr 1.3fr .9fr auto;gap:8px;align-items:end}
+  .ac-form .field{margin:0}
+  .ac-form .btn{height:44px;justify-content:center}
+  #acLista{max-height:none}
+  .ac-ok{font-size:12.5px;font-weight:700;color:var(--teal-deep);text-align:right}
+  .lnk{border:0;background:transparent;color:var(--teal-deep);cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;padding:0;text-decoration:underline}
+  .lnk.cinza{color:var(--muted)}
+  .ac-perfis{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.6}
+  .ac-perfis b{color:var(--ink)}
+  .ac-des{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+  .btn.perigo{background:#fff;color:#b3121f;border:1px solid #f3c2bd;box-shadow:none}
+  .btn.perigo:hover{border-color:#b3121f}
+  .cart-modelo{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12.5px;line-height:1.5;margin-bottom:13px;color:var(--ink)}
+  .cart-modelo .btn{flex:none}
+  @media(max-width:700px){.ac-form{grid-template-columns:1fr}.lst .it{flex-wrap:wrap}.cart-modelo{flex-direction:column;align-items:flex-start}.ac-sec .q.sub{display:none}}
   /* ---- tela de entrada (v4) ---- */
   #gate{overflow:auto;background:radial-gradient(640px 420px at 10% 12%,rgba(255,118,54,.20),transparent 62%),radial-gradient(760px 520px at 92% 92%,rgba(81,188,178,.38),transparent 60%),linear-gradient(150deg,#2a3c40 0%,#3f5a60 55%,#1f7d74 100%)}
   .gate-wrap{width:100%;max-width:980px;display:grid;grid-template-columns:1.1fr .9fr;gap:60px;align-items:center;margin:auto}
@@ -575,6 +607,8 @@
 <div class="overlay" id="cartOverlay"><div class="modal">
   <div class="modal-head">Carteira do CS<small>Planilha com as colunas CNPJ e CSM responsável</small></div>
   <div class="modal-body">
+    <div class="cart-modelo"><div><b>1.</b> Baixe o modelo e preencha um CNPJ por linha, escolhendo o nome na lista.<br><b>2.</b> Suba a planilha preenchida aqui embaixo.</div>
+      <button class="btn ghost sm" id="cartModelo">Baixar modelo</button></div>
     <div class="drop" id="dropCart">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M5 3h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/></svg>
       <div class="t">Planilha da carteira</div><div class="s">.xlsx ou .csv · colunas CNPJ e CSM responsável</div>
@@ -585,6 +619,43 @@
     <div class="err" id="cartErr"></div>
   </div>
   <div class="modal-foot"><button class="btn ghost" id="cartCancel">Cancelar</button><button class="btn" id="cartSave" disabled>Importar</button></div>
+</div></div>
+
+<!-- v5: acessos à Central (só financeiro) -->
+<div class="overlay" id="acOverlay"><div class="modal acessos">
+  <div class="modal-head">Acessos à Central<small>Quem entra e o que cada pessoa vê. Só o financeiro mexe aqui.</small></div>
+  <div class="modal-body">
+    <div id="acPendBox"></div>
+    <div class="ac-sec">Nova pessoa</div>
+    <div class="ac-form">
+      <div class="field"><label for="acNome">Nome</label><input id="acNome" placeholder="Nome e sobrenome" autocomplete="off"></div>
+      <div class="field"><label for="acEmail">E-mail</label><input id="acEmail" placeholder="nome@payfy.io" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="acPapel">Perfil</label><select id="acPapel"></select></div>
+      <button class="btn" id="acAdd">Liberar</button>
+    </div>
+    <div class="ac-sec">Quem tem acesso <span class="q" id="acQtd"></span></div>
+    <div class="lst" id="acLista"></div>
+    <div class="ac-perfis"><b>CS</b>: vê só a própria carteira e os clientes do Suporte · <b>CS master</b>: vê todos os clientes, troca CSM e cria coberturas · <b>Financeiro</b>: vê e faz tudo.</div>
+    <div class="err" id="acErr"></div>
+  </div>
+  <div class="modal-foot"><button class="btn ghost" id="acClose">Fechar</button><div class="ac-ok" id="acOk"></div></div>
+</div></div>
+
+<!-- v5: editar / desativar um acesso -->
+<div class="overlay" id="acEdOverlay"><div class="modal">
+  <div class="modal-head"><span id="acEdTit">Editar acesso</span><small id="acEdSub"></small></div>
+  <div class="modal-body">
+    <div class="field"><label for="acEdNome">Nome</label><input id="acEdNome" autocomplete="off"></div>
+    <div class="field"><label for="acEdPapel">Perfil</label><select id="acEdPapel"></select></div>
+    <div class="ac-des" id="acEdDesBox">
+      <div style="font-weight:800;font-size:13px;margin-bottom:8px">Desativar acesso</div>
+      <div class="mode-hint" id="acEdDesTxt" style="margin-bottom:10px"></div>
+      <div class="field" id="acEdParaWrap"><label for="acEdPara">Os clientes da carteira vão para</label><select id="acEdPara"></select></div>
+      <button class="btn perigo sm" id="acEdDes">Desativar acesso</button>
+    </div>
+    <div class="err" id="acEdErr" style="margin-top:10px"></div>
+  </div>
+  <div class="modal-foot"><button class="btn ghost" id="acEdCancel">Cancelar</button><button class="btn" id="acEdSave">Salvar</button></div>
 </div></div>
 
 <!-- v4: aviso de cobrança urgente ao entrar -->
@@ -1356,6 +1427,7 @@ document.getElementById('oExportBtn').onclick=async()=>{
 
 // ================= v4: carteira por pessoa, coberturas, trocas e cobrança urgente =================
 let PESSOAS={}, CART={}, COBS=[], EU={email:'',nome:''}, GERIR=false, AVISOS=[];
+let ACESSOS={pessoas:[],pendentes:[]}; // v5: só o financeiro carrega
 let csmF='todos', cartVer=0;
 function passaCsm(c){
   if(csmF==='todos'||ROLE==='csp')return true;
@@ -1386,6 +1458,7 @@ const ALERTA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 const ICO_COB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>';
 const ICO_SINO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>';
 const ICO_PLAN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
+const ICO_CHAVE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></svg>';
 
 async function apiTodos(caminho){ // o Supabase devolve no máximo 1000 linhas por vez
   let out=[],ini=0;
@@ -1489,7 +1562,8 @@ function renderAdm(){
   el.style.display='';
   el.innerHTML=`<button onclick="abrirCob()">${ICO_COB}Coberturas</button>`
     +`<button onclick="abrirAvisos()">${ICO_SINO}${ROLE==='fin'?'Avisos':'Histórico'}${ROLE==='fin'&&n?` <span class="bell-n">${n}</span>`:''}</button>`
-    +(ROLE==='fin'?`<button onclick="abrirCart()">${ICO_PLAN}Carteira do CS</button>`:'');
+    +(ROLE==='fin'?`<button onclick="abrirCart()">${ICO_PLAN}Carteira do CS</button>`:'')
+    +(ROLE==='fin'?`<button onclick="abrirAcessos()" title="Liberar, editar e desativar acessos">${ICO_CHAVE}Acessos${ACESSOS.pendentes.length?` <span class="bell-n" title="Aguardando liberação">${ACESSOS.pendentes.length}</span>`:''}</button>`:'');
 }
 function renderCobAviso(){
   const box=document.getElementById('cobBox');if(!box)return;
@@ -1580,6 +1654,7 @@ function txtLog(l){
   if(l.tipo==='troca')return `<b>${esc(l.cliente||fmtCNPJ(l.cnpj))}</b>: ${esc(nomeDe(l.de))} → <b>${esc(nomeDe(l.para))}</b><small>${esc(fmtCNPJ(l.cnpj))} · por ${por}</small>`;
   if(l.tipo==='cobertura')return `Cobertura: carteira de <b>${esc(nomeDe(l.de))}</b> fica com <b>${esc(nomeDe(l.para))}</b><small>${esc(l.detalhe||'')} · por ${por}</small>`;
   if(l.tipo==='fim_cobertura')return `Cobertura encerrada: ${esc(nomeDe(l.de))} → ${esc(nomeDe(l.para))}<small>${esc(l.detalhe||'')} · por ${por}</small>`;
+  if(l.tipo==='acesso')return `<b>${esc(nomeDe(l.para))}</b>: ${esc(l.detalhe||'')}<small>${esc(l.para||'')} · por ${por}</small>`;
   return `Importação da planilha da carteira<small>${esc(l.detalhe||'')} · por ${por}</small>`;
 }
 async function renderAvLista(){
@@ -1668,13 +1743,23 @@ inpCart.onchange=async()=>{
   if(!f)return;document.getElementById('fileCart').textContent=f.name;
   try{
     const L=await lerPlanilhaCarteira(f);
-    const por={},sem={};let mud=0;
+    // v5: mostra de quem saem os clientes; nome sem acesso fica de fora (o cliente continua com quem está)
+    const recebe={},sem={};let mud=0,igual=0;
     for(const x of L){const e=acharPessoa(x.resp);
-      if(e===null)sem[x.resp]=(sem[x.resp]||0)+1;else{por[nomeDe(e)]=(por[nomeDe(e)]||0)+1;if((CART[x.cnpj]||'')!==e)mud++;}}
-    res.innerHTML=`<b>${L.length.toLocaleString('pt-BR')} clientes</b> na planilha · <b>${mud.toLocaleString('pt-BR')}</b> mudam de responsável.<br>`
-      +Object.entries(por).sort((a,b)=>b[1]-a[1]).map(([n,q])=>`${esc(n)}: ${q}`).join(' · ')
-      +(Object.keys(sem).length?`<br><span class="alerta">Sem acesso na Central (ficam sem responsável): ${Object.entries(sem).map(([n,q])=>`${esc(n)} (${q})`).join(', ')}</span>`:'');
-    cartLinhas=L;document.getElementById('cartSave').disabled=!L.length;
+      if(e===null){sem[x.resp]=(sem[x.resp]||0)+1;continue;}
+      const de=CART[x.cnpj]||'';
+      if(de===e){igual++;continue;}
+      mud++;const o=recebe[e]||(recebe[e]={t:0,de:{}});o.t++;o.de[de]=(o.de[de]||0)+1;}
+    const nf=n=>n.toLocaleString('pt-BR');
+    const linhasMud=Object.entries(recebe).sort((a,b)=>b[1].t-a[1].t).map(([e,o])=>
+      `<b>${esc(nomeDe(e))}</b> recebe ${nf(o.t)}: `+Object.entries(o.de).sort((a,b)=>b[1]-a[1])
+        .map(([d,q])=>`${d?esc(nomeDe(d)):'sem responsável'} ${nf(q)}`).join(' · '));
+    res.innerHTML=`<b>${nf(L.length)} cliente${L.length===1?'':'s'}</b> na planilha · <b>${nf(mud)}</b> mudam de responsável`
+      +(igual?` · ${nf(igual)} já estão com a pessoa certa`:'')+'.'
+      +(linhasMud.length?'<br>'+linhasMud.join('<br>'):'')
+      +(Object.keys(sem).length?`<br><span class="alerta">Nomes sem acesso na Central (essas linhas ficam de fora e os clientes continuam com quem já estão): ${Object.entries(sem).map(([n,q])=>`${esc(n)} (${nf(q)})`).join(', ')}</span>`:'')
+      +(!mud&&L.length?'<br>Nada para mudar.':'');
+    cartLinhas=L.filter(x=>acharPessoa(x.resp)!==null);document.getElementById('cartSave').disabled=!mud;
   }catch(e){err.textContent=e&&e.message?e.message:String(e);}
 };
 document.getElementById('cartSave').onclick=async()=>{
@@ -1682,11 +1767,195 @@ document.getElementById('cartSave').onclick=async()=>{
   const btn=document.getElementById('cartSave'),err=document.getElementById('cartErr');btn.disabled=true;err.textContent='';
   try{
     const r=await rpc('importar_carteira',{linhas:cartLinhas});
-    await carregarCarteira();render();renderOmie();
-    document.getElementById('cartResumo').innerHTML=`<b>Pronto:</b> ${(r&&r.importados||0).toLocaleString('pt-BR')} clientes atualizados.`
-      +(r&&r.sem_dono&&r.sem_dono.length?`<br><span class="alerta">Sem acesso: ${r.sem_dono.map(esc).join(', ')}</span>`:'');
+    await carregarCarteira();render();renderOmie();renderUrg();
+    const ign=(r&&(r.ignorados||r.sem_dono))||[];
+    const qi=(r&&r.importados)||0;
+    document.getElementById('cartResumo').innerHTML=`<b>Pronto:</b> ${qi.toLocaleString('pt-BR')} ${qi===1?'cliente mudou':'clientes mudaram'} de responsável.`
+      +(ign.length?`<br><span class="alerta">Ficaram de fora (sem acesso na Central): ${ign.map(esc).join(', ')}</span>`:'');
     cartLinhas=null;
   }catch(e){err.textContent='Não consegui importar: '+(e&&e.message?e.message:e);btn.disabled=false;}
+};
+
+// v5: modelo da carteira para o CS preencher (CNPJ + CSM responsável em lista suspensa)
+document.getElementById('cartModelo').onclick=async()=>{
+  const err=document.getElementById('cartErr');err.textContent='';
+  if(typeof ExcelJS==='undefined'){err.textContent='O gerador de Excel não carregou. Recarregue a página e tente de novo.';return;}
+  const btn=document.getElementById('cartModelo');btn.disabled=true;
+  try{
+    const nomes=Object.values(PESSOAS).filter(p=>p.ativo&&['csp','cs'].includes(p.papel)).map(p=>p.nome)
+      .sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    nomes.push('Suporte');
+    const LINHAS=3000;
+    const wb=new ExcelJS.Workbook();wb.creator='Central de Notas e Boletos · Payfy';
+    const ws=wb.addWorksheet('Carteira',{views:[{state:'frozen',ySplit:1}]});
+    const wn=wb.addWorksheet('Nomes');
+    ws.columns=[{width:24},{width:30},{width:3},{width:78}];
+    const cab=(cell,txt)=>{cell.value=txt;cell.font={name:'Calibri',size:11,bold:true,color:{argb:C.white}};
+      cell.fill=fillOf(C.slate);cell.alignment={vertical:'middle',indent:1};};
+    cab(ws.getCell('A1'),'CNPJ');cab(ws.getCell('B1'),'CSM responsável');cab(ws.getCell('D1'),'Como preencher');
+    ws.getRow(1).height=22;
+    const ajuda=['1. Um CNPJ por linha na coluna A (pode colar com ou sem pontos e barra).',
+      '2. Na coluna B, escolha o nome na lista. Só aparecem pessoas com acesso à Central.',
+      '3. "Suporte" deixa o cliente visível para todo o CS.',
+      '4. Clientes que não estiverem na planilha continuam com quem já estão.',
+      '5. Devolva a planilha ao financeiro para importar na Central (Carteira do CS).'];
+    ajuda.forEach((t,i)=>{const c=ws.getCell('D'+(i+2));c.value=t;c.font={name:'Calibri',size:10,color:{argb:C.ink}};
+      c.fill=fillOf(C.tealSoft);c.alignment={vertical:'middle',indent:1,wrapText:true};});
+    for(let r=2;r<=LINHAS+1;r++){
+      const a=ws.getCell('A'+r);a.numFmt='@';a.font={name:'Calibri',size:11};
+      const b=ws.getCell('B'+r);b.font={name:'Calibri',size:11};
+      b.dataValidation={type:'list',allowBlank:true,formulae:[`Nomes!$A$2:$A$${nomes.length+1}`],
+        showErrorMessage:true,errorStyle:'stop',errorTitle:'Nome fora da lista',
+        error:'Escolha um nome da lista. Se a pessoa não aparece, peça ao financeiro para liberar o acesso dela na Central.'};
+    }
+    cab(wn.getCell('A1'),'Nomes com acesso à Central');wn.getColumn(1).width=34;
+    nomes.forEach((n,i)=>{const c=wn.getCell('A'+(i+2));c.value=n;c.font={name:'Calibri',size:11,color:{argb:C.ink}};});
+    wn.state='hidden';
+    const buf=await wb.xlsx.writeBuffer();
+    const u=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),l=document.createElement('a');
+    l.href=u;l.download='Modelo_carteira_CS.xlsx';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+  }catch(e){err.textContent='Não consegui gerar o modelo: '+(e&&e.message?e.message:e);}
+  btn.disabled=false;
+};
+
+// ================= v5: acessos à Central (só financeiro) =================
+const PAPEL_ROT={csp:'CS',cs:'CS master',fin:'Financeiro'};
+const acOv=document.getElementById('acOverlay'),acEdOv=document.getElementById('acEdOverlay');
+let acEd=null,acOkTimer=null;
+const msgErro=e=>String(e&&e.message?e.message:e).replace(/^HTTP \d+\s*—\s*/,'');
+const dataHora=iso=>iso?new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+const opPapel=sel=>['csp','cs','fin'].map(p=>`<option value="${p}"${p===sel?' selected':''}>${PAPEL_ROT[p]}</option>`).join('');
+async function carregarAcessos(){
+  const r=await rpc('listar_acessos')||{};
+  ACESSOS={pessoas:r.pessoas||[],pendentes:r.pendentes||[]};
+  renderAdm();
+}
+function acAviso(t){
+  const el=document.getElementById('acOk');el.textContent=t||'';
+  clearTimeout(acOkTimer);if(t)acOkTimer=setTimeout(()=>{el.textContent='';},7000);
+}
+function renderAcessos(){
+  const pend=ACESSOS.pendentes;
+  document.getElementById('acPendBox').innerHTML=pend.length?`<div class="ac-sec">Aguardando liberação <span class="n">${pend.length}</span>
+      <span class="q sub">tentaram entrar com a conta @payfy.io</span></div>
+    <div class="lst pend">${pend.map((p,i)=>`<div class="it"><div><b>${esc(p.nome||p.email)}</b>
+      <small>${esc(p.email)} · tentou entrar em ${dataHora(p.ultima)}</small></div>
+      <div class="ac-acoes"><select class="mini" id="acPp${i}" aria-label="Perfil">${opPapel('csp')}</select>
+        <button class="btn sm" onclick="liberarPendente(${i})">Liberar</button>
+        <button class="lnk cinza" onclick="dispensarPendente(${i})" title="Tira da lista. Se a pessoa tentar entrar de novo, volta a aparecer.">Dispensar</button></div></div>`).join('')}</div>`:'';
+  const L=ACESSOS.pessoas,ativos=L.filter(p=>p.ativo).length;
+  document.getElementById('acQtd').textContent=`${ativos} ativa${ativos===1?'':'s'}`;
+  document.getElementById('acLista').innerHTML=L.length?L.map((p,i)=>{
+    const det=[esc(p.email)];
+    if(p.clientes)det.push(`${Number(p.clientes).toLocaleString('pt-BR')} cliente${p.clientes==1?'':'s'} na carteira`);
+    det.push(p.ultimo?'último acesso '+dataHora(p.ultimo):'ainda não entrou');
+    return `<div class="it${p.ativo?'':' off'}"><div><b>${esc(p.nome)}</b><span class="ac-tag ${p.ativo?p.papel:'off'}">${p.ativo?PAPEL_ROT[p.papel]:'Desativado'}</span>${p.email===EU.email?' <small style="display:inline;margin-left:6px">(você)</small>':''}
+      <small>${det.join(' · ')}</small></div>
+      <div class="ac-acoes"><button class="btn ghost sm" onclick="editarAcesso(${i})">${p.ativo?'Editar':'Reativar'}</button></div></div>`;
+  }).join(''):'<div class="vazio">Ninguém cadastrado.</div>';
+}
+window.abrirAcessos=async()=>{
+  if(ROLE!=='fin')return;
+  const err=document.getElementById('acErr');err.textContent='';acAviso('');
+  document.getElementById('acPapel').innerHTML=opPapel('csp');
+  document.getElementById('acNome').value='';document.getElementById('acEmail').value='';
+  document.getElementById('acPendBox').innerHTML='';
+  document.getElementById('acLista').innerHTML='<div class="vazio">Carregando…</div>';
+  acOv.classList.add('show');
+  try{await carregarAcessos();renderAcessos();}
+  catch(e){document.getElementById('acLista').innerHTML='';err.textContent='Não consegui carregar os acessos: '+msgErro(e);}
+};
+document.getElementById('acClose').onclick=()=>acOv.classList.remove('show');
+acOv.onclick=e=>{if(e.target===acOv)acOv.classList.remove('show');};
+async function gravarAcesso(email,nome,papel){
+  await rpc('salvar_acesso',{p_email:email,p_nome:nome,p_papel:papel});
+  await Promise.all([carregarAcessos(),carregarCarteira()]);
+  renderAcessos();render();renderOmie();
+}
+window.liberarPendente=async i=>{
+  const p=ACESSOS.pendentes[i];if(!p)return;
+  const papel=document.getElementById('acPp'+i).value,err=document.getElementById('acErr');err.textContent='';
+  if(!p.nome){ // o Google não mandou o nome: completa no formulário
+    document.getElementById('acEmail').value=p.email;document.getElementById('acPapel').value=papel;
+    document.getElementById('acNome').focus();err.textContent='Digite o nome da pessoa e clique em Liberar.';return;
+  }
+  try{await gravarAcesso(p.email,p.nome,papel);acAviso(`Acesso liberado: ${p.nome} (${PAPEL_ROT[papel]}). Já pode entrar.`);}
+  catch(e){err.textContent=msgErro(e);}
+};
+window.dispensarPendente=async i=>{
+  const p=ACESSOS.pendentes[i];if(!p)return;
+  const err=document.getElementById('acErr');err.textContent='';
+  try{await rpc('dispensar_pedido_acesso',{p_email:p.email});await carregarAcessos();renderAcessos();
+    acAviso(`${p.nome||p.email} saiu da lista.`);}
+  catch(e){err.textContent=msgErro(e);}
+};
+document.getElementById('acAdd').onclick=async()=>{
+  const err=document.getElementById('acErr');err.textContent='';
+  const nome=normNome(document.getElementById('acNome').value),papel=document.getElementById('acPapel').value;
+  let email=document.getElementById('acEmail').value.trim().toLowerCase();
+  if(email&&!email.includes('@'))email+='@payfy.io';
+  if(!nome){err.textContent='Digite o nome da pessoa.';return;}
+  if(!/^[a-z0-9._%+-]+@payfy\.io$/.test(email)){err.textContent='Use o e-mail @payfy.io da pessoa.';return;}
+  const ja=ACESSOS.pessoas.find(p=>p.email===email);
+  if(ja&&ja.ativo){err.textContent=`${ja.nome} já tem acesso. Para mudar o perfil, use Editar na lista.`;return;}
+  const btn=document.getElementById('acAdd');btn.disabled=true;
+  try{await gravarAcesso(email,nome,papel);
+    document.getElementById('acNome').value='';document.getElementById('acEmail').value='';
+    acAviso(`${nome}: acesso liberado (${PAPEL_ROT[papel]}).`);}
+  catch(e){err.textContent=msgErro(e);}
+  btn.disabled=false;
+};
+window.editarAcesso=i=>{
+  const p=ACESSOS.pessoas[i];if(!p)return;acEd=p;
+  const eu=p.email===EU.email,n=Number(p.clientes)||0;
+  document.getElementById('acEdTit').textContent=p.ativo?'Editar acesso':'Reativar acesso';
+  document.getElementById('acEdSub').textContent=p.email;
+  document.getElementById('acEdNome').value=p.nome;
+  const sel=document.getElementById('acEdPapel');sel.innerHTML=opPapel(p.papel);sel.disabled=eu;
+  const box=document.getElementById('acEdDesBox');box.style.display=(p.ativo&&!eu)?'':'none';
+  if(p.ativo&&!eu){
+    const pn=esc(p.nome.split(' ')[0]);
+    document.getElementById('acEdDesTxt').innerHTML=`${pn} deixa de entrar na Central na hora. O histórico fica guardado e dá para reativar depois.`
+      +(n?`<br><b>${pn} tem ${n.toLocaleString('pt-BR')} cliente${n===1?'':'s'} na carteira.</b> Escolha para quem eles vão antes de desativar.`:'');
+    document.getElementById('acEdParaWrap').style.display=n?'':'none';
+    document.getElementById('acEdPara').innerHTML='<option value="">Escolha…</option>'
+      +Object.values(PESSOAS).filter(x=>x.ativo&&['csp','cs'].includes(x.papel)&&x.email!==p.email)
+        .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(x=>`<option value="${esc(x.email)}">${esc(x.nome)}</option>`).join('')
+      +'<option value="suporte">Suporte (todo o CS vê)</option>';
+  }
+  const bd=document.getElementById('acEdDes');bd.textContent='Desativar acesso';delete bd.dataset.conf;bd.disabled=false;
+  document.getElementById('acEdSave').textContent=p.ativo?'Salvar':'Reativar';
+  document.getElementById('acEdErr').textContent='';
+  acEdOv.classList.add('show');
+};
+document.getElementById('acEdCancel').onclick=()=>acEdOv.classList.remove('show');
+acEdOv.onclick=e=>{if(e.target===acEdOv)acEdOv.classList.remove('show');};
+document.getElementById('acEdSave').onclick=async()=>{
+  const p=acEd;if(!p)return;
+  const err=document.getElementById('acEdErr');err.textContent='';
+  const nome=normNome(document.getElementById('acEdNome').value),papel=document.getElementById('acEdPapel').value;
+  if(!nome){err.textContent='Digite o nome.';return;}
+  if(p.ativo&&nome===p.nome&&papel===p.papel){acEdOv.classList.remove('show');return;}
+  const btn=document.getElementById('acEdSave');btn.disabled=true;
+  try{await gravarAcesso(p.email,nome,papel);acEdOv.classList.remove('show');
+    acAviso(p.ativo?`${nome}: acesso atualizado.`:`${nome}: acesso reativado (${PAPEL_ROT[papel]}).`);}
+  catch(e){err.textContent=msgErro(e);}
+  btn.disabled=false;
+};
+document.getElementById('acEdDes').onclick=async()=>{
+  const p=acEd;if(!p)return;
+  const err=document.getElementById('acEdErr');err.textContent='';
+  const para=document.getElementById('acEdPara').value,n=Number(p.clientes)||0,bd=document.getElementById('acEdDes');
+  if(n&&!para){err.textContent='Escolha para quem vão os clientes da carteira.';return;}
+  if(!bd.dataset.conf){bd.dataset.conf='1';bd.textContent='Confirmar: desativar '+p.nome.split(' ')[0];return;}
+  bd.disabled=true;
+  try{
+    const r=await rpc('desativar_acesso',{p_email:p.email,p_passar_para:para||null});
+    await Promise.all([carregarAcessos(),carregarCarteira()]);renderAcessos();render();renderOmie();renderUrg();
+    acEdOv.classList.remove('show');
+    const q=(r&&r.clientes)||0;
+    acAviso(`${p.nome}: acesso desativado`+(q?` · ${q.toLocaleString('pt-BR')} ${q===1?'cliente foi':'clientes foram'} para ${nomeDe(para)}`:'')+'.');
+  }catch(e){err.textContent=msgErro(e);bd.disabled=false;bd.textContent='Desativar acesso';delete bd.dataset.conf;}
 };
 
 // ================= Supabase: login, leitura e gravação =================
@@ -1792,6 +2061,7 @@ async function abrirPainel(){
   await load();
   carregarOmie();
   carregarAvisos();
+  if(ROLE==='fin')carregarAcessos().catch(e=>console.warn('acessos:',e)); // v5: mostra quantos aguardam liberação
 }
 function erroEntrada(msg){
   const err=document.getElementById('gateErr');err.textContent=msg;
@@ -1800,7 +2070,7 @@ function erroEntrada(msg){
 }
 async function sairDoSupabase(){
   try{if(SESS)await fetch(SUPA_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SESS.access_token}});}catch(_){}
-  SESS=null;ROLE='cs';GERIR=false;EU={email:'',nome:''};guardarSessao();
+  SESS=null;ROLE='cs';GERIR=false;EU={email:'',nome:''};ACESSOS={pessoas:[],pendentes:[]};guardarSessao();
 }
 async function entrarComSessao(s){
   SESS=s;
