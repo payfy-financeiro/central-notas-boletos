@@ -258,6 +258,22 @@
   .cart-exp{display:flex;gap:8px;align-items:center;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--line)}
   .cart-exp select{flex:1;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;background:#fdfdfb;color:var(--ink)}
   .cart-exp .btn{flex:none}
+  /* ---- v7: descargas no App Payfy ---- */
+  .desc-aviso{margin:14px 0 0;border-radius:14px;padding:12px 16px;background:linear-gradient(135deg,#fff4ec,#ffe8db);border:1px solid #ffcaa9;color:var(--ink);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:13px}
+  .desc-aviso b{color:var(--orange-ink)}
+  .lst .it.desc{cursor:pointer;justify-content:flex-start}
+  .lst .it.desc input{width:16px;height:16px;flex:none;accent-color:var(--orange)}
+  .lst .it .desc-v{margin-left:auto;font-weight:800;white-space:nowrap;padding-left:10px}
+  .desc-acoes{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .desc-acoes .tot{margin-right:auto;font-size:12.5px;color:var(--muted)}
+  .desc-acoes .tot b{color:var(--ink)}
+  .desc-mail{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fbfbf8;font-size:12.5px}
+  .desc-mail .linha{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .desc-mail .prev{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;max-height:220px;overflow:auto}
+  .desc-mail .prev table{width:auto;min-width:0}
+  .desc-add{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+  .desc-add input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;background:#fdfdfb;color:var(--ink)}
+  .tag-atr{color:#d7192a;font-weight:800}
   @media(max-width:700px){.ac-form{grid-template-columns:1fr}.lst .it{flex-wrap:wrap}.cart-modelo{flex-direction:column;align-items:flex-start}.ac-sec .q.sub{display:none}}
   /* ---- tela de entrada (v4) ---- */
   #gate{overflow:auto;background:radial-gradient(640px 420px at 10% 12%,rgba(255,118,54,.20),transparent 62%),radial-gradient(760px 520px at 92% 92%,rgba(81,188,178,.38),transparent 60%),linear-gradient(150deg,#2a3c40 0%,#3f5a60 55%,#1f7d74 100%)}
@@ -433,7 +449,7 @@
 </div></header>
 
 <div class="wrap">
-  <div id="urgBox"></div><div id="cobBox"></div>
+  <div id="urgBox"></div><div id="cobBox"></div><div id="descBox"></div>
   <div class="tabs" id="tabs">
     <button data-v="aportes" class="active">Aportes (Notas Fiscais) <span class="cnt" id="cntAportes"></span></button>
     <button data-v="omie">Serviços (Notas Fiscais e Boletos) <span class="cnt" id="cntOmie"></span></button>
@@ -666,6 +682,17 @@
     <div class="err" id="acEdErr" style="margin-top:10px"></div>
   </div>
   <div class="modal-foot"><button class="btn ghost" id="acEdCancel">Cancelar</button><button class="btn" id="acEdSave">Salvar</button></div>
+</div></div>
+
+<!-- v7: descargas no App Payfy (só financeiro) -->
+<div class="overlay" id="descOverlay"><div class="modal acessos">
+  <div class="modal-head">Descargas no App Payfy<small>Clientes que pagam as cobranças com o saldo do App Payfy. No vencimento, descarregue o valor e peça a transferência para o Santander.</small></div>
+  <div class="modal-body">
+    <div class="seg" id="descSeg"><button data-m="pend" class="active">Para descarregar</button><button data-m="prox">Próximas</button><button data-m="cli">Clientes</button><button data-m="hist">Histórico</button></div>
+    <div id="descConteudo"></div>
+    <div class="err" id="descErr"></div>
+  </div>
+  <div class="modal-foot"><button class="btn ghost" id="descClose">Fechar</button><div class="ac-ok" id="descOk"></div></div>
 </div></div>
 
 <!-- v4: aviso de cobrança urgente ao entrar -->
@@ -1438,6 +1465,7 @@ document.getElementById('oExportBtn').onclick=async()=>{
 // ================= v4: carteira por pessoa, coberturas, trocas e cobrança urgente =================
 let PESSOAS={}, CART={}, COBS=[], EU={email:'',nome:''}, GERIR=false, AVISOS=[];
 let ACESSOS={pessoas:[],pendentes:[]}; // v5: só o financeiro carrega
+let DESC={clientes:[],feitas:[]},descModo='pend'; // v7: descargas no App Payfy, só o financeiro carrega
 let csmF='todos', cartVer=0;
 function passaCsm(c){
   if(csmF==='todos'||ROLE==='csp')return true;
@@ -1469,6 +1497,7 @@ const ICO_COB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 const ICO_SINO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>';
 const ICO_PLAN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
 const ICO_CHAVE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></svg>';
+const ICO_DESC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>';
 
 async function apiTodos(caminho){ // o Supabase devolve no máximo 1000 linhas por vez
   let out=[],ini=0;
@@ -1573,7 +1602,8 @@ function renderAdm(){
   el.innerHTML=`<button onclick="abrirCob()">${ICO_COB}Coberturas</button>`
     +`<button onclick="abrirAvisos()">${ICO_SINO}${ROLE==='fin'?'Avisos':'Histórico'}${ROLE==='fin'&&n?` <span class="bell-n">${n}</span>`:''}</button>`
     +(ROLE==='fin'?`<button onclick="abrirCart()">${ICO_PLAN}Carteira do CS</button>`:'')
-    +(ROLE==='fin'?`<button onclick="abrirAcessos()" title="Liberar, editar e desativar acessos">${ICO_CHAVE}Acessos${ACESSOS.pendentes.length?` <span class="bell-n" title="Aguardando liberação">${ACESSOS.pendentes.length}</span>`:''}</button>`:'');
+    +(ROLE==='fin'?`<button onclick="abrirAcessos()" title="Liberar, editar e desativar acessos">${ICO_CHAVE}Acessos${ACESSOS.pendentes.length?` <span class="bell-n" title="Aguardando liberação">${ACESSOS.pendentes.length}</span>`:''}</button>`:'')
+    +(ROLE==='fin'?(nd=>`<button onclick="abrirDesc()" title="Clientes que pagam com o saldo do App Payfy">${ICO_DESC}Descargas${nd?` <span class="bell-n" title="Para descarregar">${nd}</span>`:''}</button>`)(descPendentes().length):'');
 }
 function renderCobAviso(){
   const box=document.getElementById('cobBox');if(!box)return;
@@ -2040,6 +2070,204 @@ document.getElementById('acEdDes').onclick=async()=>{
   }catch(e){err.textContent=msgErro(e);bd.disabled=false;bd.textContent='Desativar acesso';delete bd.dataset.conf;}
 };
 
+// ================= v7: descargas no App Payfy (só financeiro) =================
+// Clientes que pagam as cobranças com o saldo do App Payfy: no vencimento, o financeiro descarrega e pede a transferência ao Santander.
+const descOv=document.getElementById('descOverlay');
+const NL=String.fromCharCode(10),TAB=String.fromCharCode(9);
+async function carregarDescargas(){
+  if(ROLE!=='fin')return;
+  try{
+    const [c,f]=await Promise.all([apiTodos('/rest/v1/descargas_clientes?select=*&order=empresa'),
+      apiTodos('/rest/v1/descargas_feitas?select=*&order=feito_em.desc')]);
+    DESC={clientes:c||[],feitas:f||[]};
+  }catch(e){console.warn('descargas:',e);}
+  atualizarDesc();
+}
+function atualizarDesc(){renderAdm();renderDescBox();if(descOv.classList.contains('show'))renderDesc();}
+function descTitulos(){ // cobranças em aberto na Omie (qualquer categoria) dos clientes com descarga, ainda não marcadas
+  if(ROLE!=='fin'||!OMIE)return [];
+  const ativos=new Set(DESC.clientes.filter(c=>c.ativo).map(c=>c.cnpj));if(!ativos.size)return [];
+  const feitos=new Set(DESC.feitas.filter(f=>!f.desfeito).map(f=>String(f.titulo_id)));
+  return OMIE.list.filter(t=>ativos.has(t.c)&&(t._s==='aberto'||t._s==='vencido')&&!feitos.has(String(t.id)));
+}
+function porVenc(a,b){return (a.ve||'').localeCompare(b.ve||'')||a.e.localeCompare(b.e,'pt-BR');}
+function descPendentes(){const h=hojeISO();return descTitulos().filter(t=>t.ve&&t.ve<=h).sort(porVenc);}
+function descProximas(){const h=hojeISO(),lim=isoMais(h,30);return descTitulos().filter(t=>t.ve&&t.ve>h&&t.ve<=lim).sort(porVenc);}
+function isoMais(iso,n){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function quandoVence(ve){
+  const h=hojeISO();if(ve===h)return 'vence hoje';
+  const dias=Math.round((new Date(h+'T12:00:00')-new Date(ve+'T12:00:00'))/864e5);
+  return dias>0?`venceu há ${dias} dia${dias>1?'s':''}`:`vence em ${-dias} dia${dias<-1?'s':''}`;
+}
+const quemFez=e=>e?nomeDe(e):'—';
+function renderDescBox(){
+  const box=document.getElementById('descBox');if(!box)return;
+  const L=descPendentes();
+  if(!L.length){box.innerHTML='';return;}
+  const tot=L.reduce((s,t)=>s+(+t.v||0),0),emp=new Set(L.map(t=>t.c)).size,s=L.length>1?'s':'';
+  box.innerHTML=`<div class="desc-aviso"><div><b>Descarga no App Payfy:</b> ${L.length} cobrança${s} de ${emp} cliente${emp>1?'s':''} vencida${s} ou vencendo hoje · <b>${brl(tot)}</b>. Descarregue o valor e peça a transferência para o Santander.</div>
+    <button class="btn sm" onclick="abrirDesc()">Ver descargas</button></div>`;
+}
+window.abrirDesc=()=>{
+  if(ROLE!=='fin')return;
+  descModo='pend';document.getElementById('descErr').textContent='';descAviso('');
+  [...document.querySelectorAll('#descSeg button')].forEach(b=>b.classList.toggle('active',b.dataset.m===descModo));
+  descOv.classList.add('show');renderDesc();
+};
+document.getElementById('descClose').onclick=()=>descOv.classList.remove('show');
+descOv.onclick=e=>{if(e.target===descOv)descOv.classList.remove('show');};
+document.getElementById('descSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;descModo=b.dataset.m;
+  [...document.querySelectorAll('#descSeg button')].forEach(x=>x.classList.toggle('active',x===b));
+  document.getElementById('descErr').textContent='';renderDesc();};
+let descOkTimer=null;
+function descAviso(t){const el=document.getElementById('descOk');el.textContent=t||'';clearTimeout(descOkTimer);
+  if(t)descOkTimer=setTimeout(()=>{el.textContent='';},7000);}
+function descItem(t,marcar){
+  const tag=marcar?'label':'div',atr=t.ve<hojeISO();
+  return `<${tag} class="it${marcar?' desc':''}">${marcar?`<input type="checkbox" class="descChk" value="${esc(String(t.id))}" checked>`:''}
+    <div style="min-width:0"><b>${esc(t.e)}</b><small>${fmtCNPJ(t.c)} · NF ${esc(t.nf||'—')} · ${esc(t.catd||'sem categoria')} · ${brData(t.ve)} · <span class="${atr?'tag-atr':''}">${quandoVence(t.ve)}</span></small></div>
+    <span class="desc-v num">${brl(t.v)}</span></${tag}>`;
+}
+function renderDesc(){
+  const el=document.getElementById('descConteudo'),ativos=DESC.clientes.filter(c=>c.ativo),np=descPendentes().length;
+  document.querySelector('#descSeg [data-m="pend"]').textContent=`Para descarregar${np?` (${np})`:''}`;
+  document.querySelector('#descSeg [data-m="cli"]').textContent=`Clientes (${ativos.length})`;
+  const semCli='<div class="lst"><div class="vazio">Nenhum cliente cadastrado. Cadastre na aba Clientes.</div></div>';
+  if(!OMIE&&(descModo==='pend'||descModo==='prox')){el.innerHTML='<div class="lst"><div class="vazio">Carregando as cobranças da Omie…</div></div>';return;}
+  if(descModo==='pend'){
+    const L=descPendentes();
+    if(!ativos.length){el.innerHTML=semCli;return;}
+    if(!L.length){el.innerHTML='<div class="lst"><div class="vazio">Nada para descarregar hoje.</div></div>';return;}
+    el.innerHTML=`<div class="lst">${L.map(t=>descItem(t,true)).join('')}</div>
+      <div class="desc-acoes"><span class="tot" id="descTot"></span>
+        <button class="btn ghost sm" id="descMail">Copiar e-mail para o Carlos</button>
+        <button class="btn sm" id="descMarcar">Marcar como descarregado</button></div>
+      <div id="descMailBox"></div>`;
+    el.querySelectorAll('.descChk').forEach(c=>c.onchange=descTotal);descTotal();
+    document.getElementById('descMail').onclick=descMontarEmail;
+    document.getElementById('descMarcar').onclick=descMarcar;
+  }else if(descModo==='prox'){
+    if(!ativos.length){el.innerHTML=semCli;return;}
+    const L=descProximas();
+    el.innerHTML=`<div class="lst">${L.length?L.map(t=>descItem(t,false)).join(''):'<div class="vazio">Nenhuma cobrança vencendo nos próximos 30 dias.</div>'}</div>`;
+  }else if(descModo==='cli'){
+    const nomes=mapaClientes(),abertos={},ja=new Set(ativos.map(c=>c.cnpj));
+    for(const t of descTitulos())abertos[t.c]=(abertos[t.c]||0)+1;
+    const sug=Object.entries(nomes).filter(([c])=>!ja.has(c)).sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'))
+      .map(([c,n])=>`<option value="${esc(n)} · ${fmtCNPJ(c)}"></option>`).join('');
+    const lista=ativos.slice().sort((a,b)=>(a.empresa||nomes[a.cnpj]||'').localeCompare(b.empresa||nomes[b.cnpj]||'','pt-BR')).map(c=>{
+      const n=abertos[c.cnpj]||0;
+      return `<div class="it"><div style="min-width:0"><b>${esc(c.empresa||nomes[c.cnpj]||fmtCNPJ(c.cnpj))}</b>
+        <small>${fmtCNPJ(c.cnpj)} · ${n?`${n} cobrança${n>1?'s':''} em aberto`:'nenhuma cobrança em aberto'} · cadastrado por ${esc(quemFez(c.criado_por))} em ${brData(c.criado_em)}</small></div>
+        <div class="ac-acoes"><button class="btn ghost sm" onclick="descRemover('${esc(c.cnpj)}')">Remover</button></div></div>`;}).join('');
+    el.innerHTML=`<div class="desc-add"><input id="descBusca" list="descSug" placeholder="Nome do cliente ou CNPJ" autocomplete="off">
+        <datalist id="descSug">${sug}</datalist><button class="btn sm" id="descAdd">Adicionar</button></div>
+      <div class="lst">${lista||'<div class="vazio">Nenhum cliente cadastrado ainda.</div>'}</div>`;
+    document.getElementById('descAdd').onclick=descAdicionar;
+    document.getElementById('descBusca').onkeydown=e=>{if(e.key==='Enter')descAdicionar();};
+  }else{
+    const L=DESC.feitas.slice(0,150);
+    el.innerHTML=`<div class="lst">${L.length?L.map(f=>`<div class="it${f.desfeito?' off':''}"><div style="min-width:0"><b>${esc(f.empresa||fmtCNPJ(f.cnpj))}</b>
+        <small>NF ${esc(f.nf||'—')} · venc. ${brData(f.vencimento)} · descarregado em ${dataHora(f.feito_em)} por ${esc(quemFez(f.feito_por))}${f.desfeito?` · desfeito em ${dataHora(f.desfeito_em)} por ${esc(quemFez(f.desfeito_por))}`:''}</small></div>
+        <div class="ac-acoes"><span class="num" style="font-weight:800;white-space:nowrap">${brl(f.valor)}</span>${f.desfeito?'':`<button class="lnk cinza" onclick="descDesfazer(${Number(f.titulo_id)})">Desfazer</button>`}</div></div>`).join('')
+      :'<div class="vazio">Nada descarregado ainda.</div>'}</div>`;
+  }
+}
+function descSelecionadas(){
+  const ids=new Set([...document.querySelectorAll('.descChk:checked')].map(c=>c.value));
+  return descPendentes().filter(t=>ids.has(String(t.id)));
+}
+function descTotal(){
+  const L=descSelecionadas(),el=document.getElementById('descTot');
+  if(el)el.innerHTML=`Selecionadas: <b>${L.length}</b> · <b>${brl(L.reduce((s,t)=>s+(+t.v||0),0))}</b>`;
+  for(const id of ['descMarcar','descMail']){const b=document.getElementById(id);if(b)b.disabled=!L.length;}
+  const box=document.getElementById('descMailBox');if(box)box.innerHTML='';
+}
+function descEmail(L){
+  const tot=L.reduce((s,t)=>s+(+t.v||0),0),d=new Date();
+  const assunto=`Transferência App Payfy p/ Santander - NFs ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+  const th='padding:6px 10px;border:1px solid #466369;background:#466369;color:#ffffff;font-weight:bold;text-align:left';
+  const td='padding:6px 10px;border:1px solid #d9dedd';
+  const linhas=L.map(t=>`<tr><td style="${td}">${esc(t.e)}</td><td style="${td};white-space:nowrap">${fmtCNPJ(t.c)}</td><td style="${td}">${esc(t.nf||'—')}</td><td style="${td};text-align:right;white-space:nowrap">${brl(t.v)}</td></tr>`).join('');
+  const html=`<p>Olá, Carlos!</p><p>Favor transferir <b>${brl(tot)}</b> do App Payfy para o Santander, referente ao pagamento das NFs abaixo.</p>`
+    +`<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px"><thead><tr><th style="${th}">EMPRESA</th><th style="${th}">CNPJ</th><th style="${th}">NF</th><th style="${th};text-align:right">VALOR</th></tr></thead>`
+    +`<tbody>${linhas}<tr><td style="${td};font-weight:bold" colspan="3">TOTAL</td><td style="${td};text-align:right;font-weight:bold;white-space:nowrap">${brl(tot)}</td></tr></tbody></table><p>Obrigada!</p>`;
+  const texto=['Olá, Carlos!','',`Favor transferir ${brl(tot)} do App Payfy para o Santander, referente ao pagamento das NFs abaixo.`,'',
+    ['EMPRESA','CNPJ','NF','VALOR'].join(TAB)].concat(L.map(t=>[t.e,fmtCNPJ(t.c),t.nf||'—',brl(t.v)].join(TAB)),
+    [['TOTAL','','',brl(tot)].join(TAB),'','Obrigada!']).join(NL);
+  return {assunto,html,texto};
+}
+function descMontarEmail(){
+  const L=descSelecionadas();if(!L.length)return;
+  const m=descEmail(L);
+  document.getElementById('descMailBox').innerHTML=`<div class="desc-mail">
+    <div class="linha"><div><small style="color:var(--muted)">Assunto</small><br><b>${esc(m.assunto)}</b></div><button class="btn ghost sm" id="descCopAss">Copiar assunto</button></div>
+    <div class="linha"><small style="color:var(--muted)">Texto do e-mail (de deposito@payfy.io para o Carlos, com a Pâmela em cópia)</small><button class="btn sm" id="descCopTxt">Copiar texto</button></div>
+    <div class="prev">${m.html}</div></div>`;
+  document.getElementById('descCopAss').onclick=async()=>descAviso(await copiar(m.assunto,'')?'Assunto copiado.':'Não consegui copiar. Selecione e copie à mão.');
+  document.getElementById('descCopTxt').onclick=async()=>descAviso(await copiar(m.texto,m.html)?'Texto copiado. É só colar no e-mail.':'Não consegui copiar. Selecione e copie à mão.');
+}
+async function copiar(texto,html){
+  try{
+    if(html&&navigator.clipboard&&window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([texto],{type:'text/plain'})})]);
+      return true;
+    }
+    if(!html&&navigator.clipboard){await navigator.clipboard.writeText(texto);return true;}
+  }catch(e){}
+  try{ // plano B: seleciona um trecho escondido e copia
+    const d=document.createElement('div');d.style.cssText='position:fixed;left:-9999px;top:0';
+    if(html)d.innerHTML=html;else d.textContent=texto;
+    document.body.appendChild(d);
+    const r=document.createRange();r.selectNodeContents(d);const s=getSelection();s.removeAllRanges();s.addRange(r);
+    const ok=document.execCommand('copy');s.removeAllRanges();d.remove();return ok;
+  }catch(e){return false;}
+}
+async function descMarcar(){
+  const L=descSelecionadas();if(!L.length)return;
+  const btn=document.getElementById('descMarcar'),err=document.getElementById('descErr');err.textContent='';btn.disabled=true;
+  try{
+    await api('/rest/v1/descargas_feitas?on_conflict=titulo_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify(L.map(t=>({titulo_id:t.id,cnpj:t.c,empresa:t.e,nf:t.nf||null,categoria:t.catd||null,vencimento:t.ve||null,valor:t.v,desfeito:false})))});
+    await carregarDescargas();
+    const s=L.length>1?'s':'';
+    descAviso(`${L.length} cobrança${s} marcada${s} como descarregada${s}.`);
+  }catch(e){err.textContent='Não consegui marcar: '+msgErro(e);btn.disabled=false;}
+}
+window.descDesfazer=async id=>{
+  const err=document.getElementById('descErr');err.textContent='';
+  try{
+    await api('/rest/v1/descargas_feitas?titulo_id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({desfeito:true})});
+    await carregarDescargas();descAviso('Descarga desfeita: a cobrança volta para a lista.');
+  }catch(e){err.textContent='Não consegui desfazer: '+msgErro(e);}
+};
+async function descAdicionar(){
+  const inp=document.getElementById('descBusca'),err=document.getElementById('descErr');err.textContent='';
+  const v=(inp.value||'').trim();if(!v)return;
+  const nomes=mapaClientes(),partes=v.split(' · ');
+  let cnpj=partes[partes.length-1].replace(/[^0-9]/g,'');
+  if(cnpj.length!==14){ // digitou só o nome: aceita se bater com um cliente só
+    const achados=Object.entries(nomes).filter(([,n])=>n.toLowerCase()===v.toLowerCase());
+    cnpj=achados.length===1?achados[0][0]:'';
+  }
+  if(!/^[0-9]{14}$/.test(cnpj)){err.textContent='Escolha o cliente na lista ou digite os 14 números do CNPJ.';return;}
+  const empresa=nomes[cnpj]||'';
+  try{
+    await api('/rest/v1/descargas_clientes?on_conflict=cnpj',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify([{cnpj,empresa,ativo:true}])});
+    inp.value='';await carregarDescargas();
+    descAviso(`${empresa||fmtCNPJ(cnpj)} entrou na lista de descarga.`);
+  }catch(e){err.textContent='Não consegui adicionar: '+msgErro(e);}
+}
+window.descRemover=async cnpj=>{
+  const err=document.getElementById('descErr');err.textContent='';
+  try{
+    await api('/rest/v1/descargas_clientes?cnpj=eq.'+encodeURIComponent(cnpj),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({ativo:false})});
+    await carregarDescargas();descAviso('Cliente removido da lista de descarga.');
+  }catch(e){err.textContent='Não consegui remover: '+msgErro(e);}
+};
+
 // ================= Supabase: login, leitura e gravação =================
 let SESS=null; // {access_token, refresh_token, expira}
 function guardarSessao(){try{SESS?sessionStorage.setItem('cnb_sessao',JSON.stringify({s:SESS,r:ROLE})):sessionStorage.removeItem('cnb_sessao');}catch(e){}}
@@ -2085,7 +2313,7 @@ async function carregarOmie(){
   try{
     const d=await rpc('omie_compacto');
     if(!d||!d.tit||!d.tit.length){OMIE=null;OMIE_ERR=ROLE==='csp'?'<b>Nenhuma cobrança de serviço</b> nos clientes que você acompanha.':'<b>Ainda não há dados do Omie.</b> A sincronização roda todos os dias, por volta das 7h e das 13h.';renderUrg();renderOmie();return;}
-    prepOmie(d);buildOYears();renderUpdated();renderUrg();popupUrgente();
+    prepOmie(d);buildOYears();renderUpdated();renderUrg();popupUrgente();atualizarDesc();
   }catch(e){
     OMIE=null;OMIE_ERR='<b>Não consegui carregar as notas e boletos de serviços agora.</b> Recarregue a página em alguns minutos. <span class="sub-muted">('+esc(e&&e.message?e.message:e)+')</span>';
   }
@@ -2144,6 +2372,7 @@ async function abrirPainel(){
   carregarOmie();
   carregarAvisos();
   if(ROLE==='fin')carregarAcessos().catch(e=>console.warn('acessos:',e)); // v5: mostra quantos aguardam liberação
+  if(ROLE==='fin')carregarDescargas(); // v7: aviso de descarga no vencimento
 }
 function erroEntrada(msg){
   const err=document.getElementById('gateErr');err.textContent=msg;
@@ -2152,7 +2381,7 @@ function erroEntrada(msg){
 }
 async function sairDoSupabase(){
   try{if(SESS)await fetch(SUPA_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SESS.access_token}});}catch(_){}
-  SESS=null;ROLE='cs';GERIR=false;EU={email:'',nome:''};ACESSOS={pessoas:[],pendentes:[]};guardarSessao();
+  SESS=null;ROLE='cs';GERIR=false;EU={email:'',nome:''};ACESSOS={pessoas:[],pendentes:[]};DESC={clientes:[],feitas:[]};guardarSessao();
 }
 async function entrarComSessao(s){
   SESS=s;
